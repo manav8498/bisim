@@ -27,13 +27,13 @@ class Row:
     evidence: list[dict] = field(default_factory=list)
 
 
-def check(root, base: str = "HEAD", timeout: float = 2.0) -> list[Row]:
+def check(root, base: str = "HEAD", timeout: float = 2.0, grow: bool = True) -> list[Row]:
     root = find_root(root)
     rows: list[Row] = []
     for pr in function_pairs(root, base):
         try:
             if pr.old_path and pr.new_path:
-                d = diff_functions(pr.old_path, pr.name, pr.new_path, pr.name, root=root, timeout=timeout)
+                d = diff_functions(pr.old_path, pr.name, pr.new_path, pr.name, root=root, timeout=timeout, grow=grow)
                 if d.signature_changed:
                     rows.append(Row(pr.rel, pr.name, "signature-changed", d.warnings[0]))
                 elif d.same:
@@ -61,7 +61,7 @@ def check(root, base: str = "HEAD", timeout: float = 2.0) -> list[Row]:
 def run_check(args) -> int:
     root = find_root(args.root) if args.root else find_root()
     try:
-        rows = check(root, args.base, args.timeout)
+        rows = check(root, args.base, args.timeout, grow=not getattr(args, "no_grow", False))
     except NotARepo as e:
         print(f"error: {e}", file=sys.stderr)
         return 4

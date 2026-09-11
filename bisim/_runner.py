@@ -109,15 +109,31 @@ def main():
     def resolver(qualname: str):
         return getattr(mod, qualname.split(".")[-1])
 
+    want_cov = bool(job.get("coverage"))
+    target_file = os.path.abspath(job["module"])
+
+    def tracer_for(hits: set):
+        def trace(frame, event, arg):
+            if frame.f_code.co_filename != target_file:
+                return None
+            if event == "line":
+                hits.add(frame.f_lineno)
+            return trace
+        return trace
+
     for p in job["probes"]:
         buf = io.StringIO()
+        hits: set = set()
         try:
             args = uncanon(p, resolver)
             signal.setitimer(signal.ITIMER_REAL, job["timeout"])
             try:
+                if want_cov:
+                    sys.settrace(tracer_for(hits))
                 with contextlib.redirect_stdout(buf):
                     val = fn(*args)
             finally:
+                sys.settrace(None)
                 signal.setitimer(signal.ITIMER_REAL, 0)
             rec = {"ok": True, "value": canon(val)}
         except _Timeout:
@@ -126,6 +142,8 @@ def main():
             rec = {"ok": False, "exc": type(e).__name__}
         if buf.getvalue() and "timeout" not in rec:
             rec["out"] = buf.getvalue()
+        if want_cov:
+            rec["cov"] = sorted(hits)
         out.write(json.dumps(rec, sort_keys=True) + "\n")
         out.flush()
 

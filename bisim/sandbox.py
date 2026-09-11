@@ -58,19 +58,41 @@ def _spawn(job: dict, total_timeout: float) -> list[dict]:
     return lines
 
 
-def run_probes(module_path: str, func_name: str, probes: list[Probe], timeout: float = DEFAULT_TIMEOUT) -> list[dict]:
-    """One process, one pass. Returns one observation record per probe."""
+def _run(module_path: str, func_name: str, probes: list[Probe], timeout: float, coverage: bool) -> tuple[list[dict], list[set[int]]]:
     job = {
         "op": "run",
         "module": os.path.abspath(module_path),
         "func": func_name,
         "timeout": timeout,
+        "coverage": coverage,
         "probes": [canon(list(p.args)) for p in probes],
     }
-    obs = _spawn(job, total_timeout=len(probes) * timeout + 15)
-    if len(obs) != len(probes):
-        raise SandboxError(f"expected {len(probes)} observations, got {len(obs)}")
-    return obs
+    lines = _spawn(job, total_timeout=len(probes) * timeout + 15)
+    if len(lines) != len(probes):
+        raise SandboxError(f"expected {len(probes)} observations, got {len(lines)}")
+    cov = [set(rec.pop("cov", [])) for rec in lines]  # coverage is diagnostic: never part of an observation
+    return lines, cov
+
+
+def run_probes(module_path: str, func_name: str, probes: list[Probe], timeout: float = DEFAULT_TIMEOUT) -> list[dict]:
+    """One process, one pass. Returns one observation record per probe."""
+    return _run(module_path, func_name, probes, timeout, False)[0]
+
+
+def run_probes_with_coverage(module_path: str, func_name: str, probes: list[Probe], timeout: float = DEFAULT_TIMEOUT) -> tuple[list[dict], list[set[int]]]:
+    """Like ``run_probes`` but also returns, per probe, the set of module lines executed."""
+    return _run(module_path, func_name, probes, timeout, True)
+
+
+def observe_cov(module_path: str, func_name: str, probes: list[Probe], timeout: float = DEFAULT_TIMEOUT) -> tuple[list[dict], list[set[int]]]:
+    """Two independent processes; any disagreement means the function is nondeterministic.
+    Coverage comes from the first run."""
+    a, cov = _run(module_path, func_name, probes, timeout, True)
+    b, _ = _run(module_path, func_name, probes, timeout, False)
+    for p, x, y in zip(probes, a, b):
+        if x != y:
+            raise Nondeterministic(p, x, y)
+    return a, cov
 
 
 def observe(module_path: str, func_name: str, probes: list[Probe], timeout: float = DEFAULT_TIMEOUT) -> list[dict]:

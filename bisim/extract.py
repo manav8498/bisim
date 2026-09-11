@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 class Unsupported(Exception):
@@ -21,6 +21,7 @@ class FunctionSpec:
     source: str
     module_path: str
     lineno: int
+    lines: list[int] = field(default_factory=list)  # executable statement lines inside the body
 
     def signature_str(self) -> str:
         return "(" + ", ".join(f"{n}: {t}" for n, t in self.params) + f") -> {self.returns}"
@@ -45,7 +46,24 @@ def _spec_from_def(node, src: str, path: str) -> FunctionSpec:
     if node.returns is None:
         raise Unsupported(f"{node.name}: missing return type hint")
     source = ast.get_source_segment(src, node) or ""
-    return FunctionSpec(node.name, params, ast.unparse(node.returns), source, path, node.lineno)
+    return FunctionSpec(node.name, params, ast.unparse(node.returns), source, path, node.lineno, _executable_lines(node))
+
+
+def _executable_lines(node) -> list[int]:
+    body = node.body
+    if body and isinstance(body[0], ast.Expr) and isinstance(getattr(body[0], "value", None), ast.Constant) \
+            and isinstance(body[0].value.value, str):
+        body = body[1:]  # docstring
+    lines = set()
+    for stmt in body:
+        for sub in ast.walk(stmt):
+            if isinstance(sub, ast.stmt):
+                lines.add(sub.lineno)
+    return sorted(lines)
+
+
+def executable_lines(spec: FunctionSpec) -> list[int]:
+    return list(spec.lines)
 
 
 def _top_level_defs(src: str):

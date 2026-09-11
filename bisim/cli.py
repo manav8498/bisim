@@ -59,6 +59,10 @@ def cmd_hash(args) -> int:
         print(f"{m.address}")
         print(f"  {fn}{r.spec.signature_str()}")
         print(f"  probes={len(m.probes)} (type={c['type']} witness={c['witness']} suggested={c['suggested']})  python={m.runtime['python']}  probegen={m.probegen}")
+        if m.coverage:
+            cov = m.coverage
+            missed = f"  missed lines: {', '.join(map(str, cov['missed']))}" if cov["missed"] else ""
+            print(f"  coverage={cov['pct']}% of {len(cov['executable'])} executable lines{missed}")
         for w in r.warnings:
             print(f"  warning: {w}")
         if args.push:
@@ -70,7 +74,8 @@ def _diff_to_dict(d: DiffResult) -> dict:
     return {
         "same": d.same, "signature_changed": d.signature_changed, "old_address": d.old_address,
         "new_address": d.new_address, "exit_code": d.exit_code, "warnings": d.warnings,
-        "probe_count": d.probe_count, "changes": [dataclasses.asdict(c) for c in d.changes],
+        "probe_count": d.probe_count, "growth_rounds": d.growth_rounds, "coverage": d.coverage,
+        "changes": [dataclasses.asdict(c) for c in d.changes],
     }
 
 
@@ -78,11 +83,12 @@ def print_diff(d: DiffResult, label_old: str = "old", label_new: str = "new") ->
     if d.signature_changed:
         print(f"SIGNATURE CHANGED  {d.warnings[0]}")
         return
+    grown = f", grown ×{d.growth_rounds}" if d.growth_rounds else ""
     if d.same:
-        print(f"SAME  {d.old_address}  ({d.probe_count} probes agree)")
+        print(f"SAME  {d.old_address}  ({d.probe_count} probes agree{grown})")
     else:
         print(f"CHANGED  {label_old}={d.old_address[:17]}…  {label_new}={d.new_address[:17]}…")
-        print(f"  changed on {len(d.changes)} of {d.probe_count} inputs ({d.witnessed_changes} witnessed)")
+        print(f"  changed on {len(d.changes)} of {d.probe_count} inputs ({d.witnessed_changes} witnessed{grown})")
         ordered = sorted(d.changes, key=lambda c: (c.kind != "witness", len(fmt_args(c.args))))
         rows = [(fmt_args(c.args), c.kind, describe_obs(c.old), describe_obs(c.new)) for c in ordered]
         w0 = min(max(len(r[0]) for r in rows), 40)
@@ -100,7 +106,7 @@ def print_diff(d: DiffResult, label_old: str = "old", label_new: str = "new") ->
 def cmd_diff(args) -> int:
     op, ofn = _target(args.old)
     np_, nfn = _target(args.new)
-    d = diff_functions(op, ofn, np_, nfn, root=_root(args), timeout=args.timeout)
+    d = diff_functions(op, ofn, np_, nfn, root=_root(args), timeout=args.timeout, count=args.count, grow=not args.no_grow)
     if args.json:
         _emit_json(_diff_to_dict(d))
     else:
@@ -199,11 +205,14 @@ def build_parser() -> argparse.ArgumentParser:
     d = sub.add_parser("diff", help="compare two functions by behavior")
     d.add_argument("old", help="path.py:function")
     d.add_argument("new", help="path.py:function")
+    d.add_argument("--count", type=int, default=48, help="initial number of generated probes")
+    d.add_argument("--no-grow", action="store_true", help="do not widen the probe set until line coverage plateaus")
     common(d)
     d.set_defaults(func=cmd_diff)
 
     c = sub.add_parser("check", help="behavioral gate: every changed function in the git worktree vs a base")
     c.add_argument("--base", default="HEAD")
+    c.add_argument("--no-grow", action="store_true", help="do not widen probe sets until coverage plateaus")
     common(c)
     c.set_defaults(func=cmd_check)
 

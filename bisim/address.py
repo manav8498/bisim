@@ -57,6 +57,7 @@ class Manifest:
     probes: list[ProbeRecord]
     root: str
     address: str
+    coverage: dict | None = None  # diagnostic only — never part of the address
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -65,6 +66,7 @@ class Manifest:
     def from_dict(d: dict) -> "Manifest":
         d = dict(d)
         d["probes"] = [ProbeRecord(**p) for p in d["probes"]]
+        d.setdefault("coverage", None)
         return Manifest(**d)
 
     def short(self) -> str:
@@ -80,7 +82,21 @@ class Manifest:
         return out
 
 
-def build_manifest(spec: FunctionSpec, probes: list[Probe], observations: list[dict]) -> Manifest:
+def coverage_summary(spec: FunctionSpec, cov: list[set[int]]) -> dict | None:
+    """Line coverage of the function body by the probe set. ``None`` if the spec has no line info."""
+    if not spec.lines:
+        return None
+    hit_all: set[int] = set()
+    for c in cov:
+        hit_all |= c
+    executable = list(spec.lines)
+    hit = sorted(l for l in executable if l in hit_all)
+    missed = sorted(l for l in executable if l not in hit_all)
+    pct = round(100.0 * len(hit) / len(executable), 1) if executable else 100.0
+    return {"executable": executable, "hit": hit, "missed": missed, "pct": pct}
+
+
+def build_manifest(spec: FunctionSpec, probes: list[Probe], observations: list[dict], coverage: dict | None = None) -> Manifest:
     if len(probes) != len(observations):
         raise ValueError("probes and observations differ in length")
     recs = []
@@ -98,4 +114,5 @@ def build_manifest(spec: FunctionSpec, probes: list[Probe], observations: list[d
         recs,
         root,
         compute_address(sh, root),
+        coverage,
     )

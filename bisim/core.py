@@ -6,11 +6,11 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .address import Manifest, build_manifest, sig_hash
+from .address import Manifest, build_manifest, coverage_summary, sig_hash
 from .canon import canon
 from .extract import FunctionSpec, Unsupported, extract_function
 from .probes import DEFAULT_COUNT, Probe, dataclass_type, generate_type_probes
-from .sandbox import DEFAULT_TIMEOUT, introspect, observe
+from .sandbox import DEFAULT_TIMEOUT, introspect, observe, observe_cov
 from .witness import ledger_probes, load_ledger
 
 KIND_RANK = {"type": 0, "suggested": 1, "witness": 2}
@@ -90,10 +90,16 @@ def hash_function(path: str, fn: str, root=None, timeout: float = DEFAULT_TIMEOU
     spec = extract_function(path, fn)
     resolver = resolver_for(spec)
     probes, warnings = probes_for(spec, root, count, resolver)
-    obs = observe(path, fn, probes, timeout)
-    m = build_manifest(spec, probes, obs)
+    obs, cov = observe_cov(path, fn, probes, timeout)
+    summary = coverage_summary(spec, cov)
+    m = build_manifest(spec, probes, obs, summary)
     if any(r.opaque for r in m.probes):
         warnings.append("some observations are opaque (repr-based); the address may be less portable")
+    if summary and summary["missed"]:
+        warnings.append(
+            f"uncovered: {len(probes)} probes never executed line(s) {', '.join(map(str, summary['missed']))} "
+            f"of {fn} — add a witness that reaches them, or raise --count"
+        )
     return HashResult(m, spec, probes, warnings)
 
 
@@ -116,6 +122,8 @@ class DiffResult:
     exit_code: int
     warnings: list[str] = field(default_factory=list)
     probe_count: int = 0
+    growth_rounds: int = 0
+    coverage: dict | None = None  # {"old": summary, "new": summary}
 
     @property
     def witnessed_changes(self) -> int:
@@ -137,21 +145,43 @@ def merge_probes(*lists: list[Probe]) -> list[Probe]:
     return out
 
 
-def diff_functions(old_path: str, old_fn: str, new_path: str, new_fn: str, root=None, timeout: float = DEFAULT_TIMEOUT) -> DiffResult:
+MAX_COUNT = 480
+
+
+def diff_functions(old_path: str, old_fn: str, new_path: str, new_fn: str, root=None, timeout: float = DEFAULT_TIMEOUT,
+                   count: int = DEFAULT_COUNT, grow: bool = True, max_count: int = MAX_COUNT) -> DiffResult:
+    """Behavioral diff. With ``grow``, the generated probe set is widened (48 → 96 → …) until every
+    executable line of both functions has run at least once, or coverage stops improving."""
     root = find_root(root or os.path.dirname(os.path.abspath(new_path)))
     so, sn = extract_function(old_path, old_fn), extract_function(new_path, new_fn)
     if sig_hash(so) != sig_hash(sn):
         return DiffResult(False, True, "", "", [], 2, [f"signature changed: {so.signature_str()} -> {sn.signature_str()}"])
     resolver = resolver_for(sn) or resolver_for(so)
-    po, wo = probes_for(so, root, DEFAULT_COUNT, resolver)
-    pn, wn = probes_for(sn, root, DEFAULT_COUNT, resolver)
-    probes = merge_probes(po, pn)
-    oo = observe(old_path, old_fn, probes, timeout)
-    on = observe(new_path, new_fn, probes, timeout)
-    mo, mn = build_manifest(so, probes, oo), build_manifest(sn, probes, on)
+    rounds = 0
+    prev_hit = (-1, -1)
+    while True:
+        po, wo = probes_for(so, root, count, resolver)
+        pn, wn = probes_for(sn, root, count, resolver)
+        probes = merge_probes(po, pn)
+        oo, co = observe_cov(old_path, old_fn, probes, timeout)
+        on, cn = observe_cov(new_path, new_fn, probes, timeout)
+        summ_o, summ_n = coverage_summary(so, co), coverage_summary(sn, cn)
+        hit = (len(summ_o["hit"]) if summ_o else 0, len(summ_n["hit"]) if summ_n else 0)
+        complete = all(s is None or not s["missed"] for s in (summ_o, summ_n))
+        if not grow or complete or hit == prev_hit or count >= max_count:
+            break
+        prev_hit = hit
+        count = min(count * 2, max_count)
+        rounds += 1
+    mo = build_manifest(so, probes, oo, summ_o)
+    mn = build_manifest(sn, probes, on, summ_n)
     changes = [Change(p.id, p.kind, canon(list(p.args)), a, b) for p, a, b in zip(probes, oo, on) if a != b]
     warnings = wo + wn
     if mo.runtime != mn.runtime:
         warnings.append("runtimes differ")
+    for label, path, fn, summ in (("old", old_path, old_fn, summ_o), ("new", new_path, new_fn, summ_n)):
+        if summ and summ["missed"]:
+            warnings.append(f"{label} {os.path.basename(path)}:{fn} line(s) {', '.join(map(str, summ['missed']))} never executed by {len(probes)} probes")
     code = 0 if not changes else (2 if any(c.kind == "witness" for c in changes) else 1)
-    return DiffResult(not changes, False, mo.address, mn.address, changes, code, warnings, len(probes))
+    return DiffResult(not changes, False, mo.address, mn.address, changes, code, warnings, len(probes), rounds,
+                      {"old": summ_o, "new": summ_n})
