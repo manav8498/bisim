@@ -136,12 +136,26 @@ bisim witness add m.py:Stack --init '[2]' --calls '[["push",[1]],["push",[2]],["
 ```
 
 Instances are built from the typed `__init__` (or dataclass fields) by the same seeded generator. An
-observation is the return value (or exception) of each call **and the instance's state afterwards** —
-a method's behavior is what it returns *and* what it does to `self`. So a mutant that mutates state
-before raising, or a `pop` that quietly becomes FIFO, flips the address even when every single-call
-result is unchanged. `check` and `merge-check` pair `Class` and `Class.method` targets automatically.
+observation is the return value (or exception) of each call **and the instance's observable state
+afterwards** — dataclass fields, or public attributes; private `_names` are implementation detail and
+never affect an address. Sequences keep going after an exception, the way real callers do. So a mutant
+that mutates state before raising, or a `pop` that quietly becomes FIFO, flips the address even when
+every single-call result is unchanged. `check`, `merge-check`, `reach` and `mint` all take class targets.
 
-Not yet: `mint` and `reach` for classes; methods with decorators; properties; class methods.
+```
+$ bisim mint --intent "a rate limiter that allows up to limit calls until reset()" --sig-file stub.py --out rl.py
+Input: new(-2147483648); remaining()   (6 behaviors still possible)
+  [0] init raises ValueError    (3 candidates)
+  [1] -2147483648               (1 candidate)
+  [2] -1                        (1 candidate)
+  [3] 0                         (1 candidate)
+…
+questions asked: 5   witnesses: 5
+```
+`--sig` / `--sig-file` take a class stub (`class RateLimiter:` with `...` bodies); witnesses become
+sequence tests (`obj = RateLimiter(2); obj.allow(); assert obj.allow() == …`).
+
+Not yet: methods with decorators; properties; class methods.
 
 ## Behavioral merge conflicts
 
@@ -304,16 +318,16 @@ Done since the v1 spec: line coverage per address and growth-until-plateau in `d
 
 Done in 0.3.0: methods and classes via constructor + call-sequence probes, with state in observations.
 
-Done in 0.4.0: effect ledgers.
+Done in 0.4.0: effect ledgers. Done in 0.5.0: `mint` and `reach` for classes.
 
-Next: `mint`/`reach` for classes · branch (not just line) coverage · a shared registry so agents reuse
-witnessed implementations instead of regenerating them.
+Next: branch (not just line) coverage · a shared registry so agents reuse witnessed implementations
+instead of regenerating them · decorated methods and properties.
 
 ## Development
 
 ```bash
 uv venv && uv pip install -e ".[dev]"
-.venv/bin/pytest -q           # 173 tests, ~30 s, offline
+.venv/bin/pytest -q           # 178 tests, ~30 s, offline
 python -m bisim.evalbench     # reproduce the evaluation from cached generations
 bash examples/demo.sh
 ```

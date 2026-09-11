@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 — 2026-09-11
+
+- `mint` for classes: `--sig`/`--sig-file` accept a class stub; candidates are whole classes probed
+  by call sequences; suggested inputs are `{"init", "calls"}`; witnesses become sequence tests.
+- `reach` for `Class` and `Class.method` targets.
+- Observable state is public attributes only (dataclass fields, or names not starting with `_`);
+  call sequences continue after an exception.
+
 ## 0.4.0 — 2026-09-11
 
 - Effect ledger: `open`, files left in the scratch cwd (content-hashed), `os.environ` reads, and

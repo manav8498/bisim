@@ -16,7 +16,8 @@ def describe_obs(o: dict) -> str:
     if "steps" in o:  # method / class sequence
         parts = [(_val(st["value"]) if st.get("ok") else f"raises {st.get('exc', '?')}") for st in o["steps"]]
         s = "; ".join(parts) if parts else "(no calls)"
-        s += f"  → state {_val(o['state'])}"
+        if o.get("state") not in (None, ["d", []]):
+            s += f"  → state {_val(o['state'])}"
     else:
         s = _val(o["value"])
     if o.get("out"):

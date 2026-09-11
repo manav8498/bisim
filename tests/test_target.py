@@ -87,7 +87,8 @@ def test_fmt_for_class_probes():
 
     assert fmt_args(canon([(3,), (("push", (7,)), ("pop", ()))])) == "new(3); push(7); pop()"
     assert describe_obs({"ok": False, "exc": "ValueError", "at": "init"}) == "init raises ValueError"
-    assert describe_obs({"ok": True, "steps": [{"ok": True, "value": ["n"]}, {"ok": False, "exc": "IndexError"}], "state": ["d", []]}) == "None; raises IndexError  → state {}"
+    assert describe_obs({"ok": True, "steps": [{"ok": True, "value": ["n"]}, {"ok": False, "exc": "IndexError"}], "state": ["d", []]}) == "None; raises IndexError"
+    assert describe_obs({"ok": True, "steps": [{"ok": True, "value": ["n"]}], "state": ["d", [[["s", "items"], ["l", []]]]]}) == "None  → state {'items': []}"
 
 
 def test_cli_class_targets_end_to_end(tmp_path, capsys):
