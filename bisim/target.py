@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from .address import Manifest, build_manifest_for, coverage_summary, sig_hash
 from .extract import ClassSpec, FunctionSpec, Unsupported, extract_class, extract_function, parse_target
-from .probes import DEFAULT_COUNT, Probe, class_sig_hash, dataclass_type, generate_method_probes, generate_sequence_probes, generate_type_probes
+from .probes import DEFAULT_COUNT, STANDARD_COUNT, Probe, class_sig_hash, dataclass_type, generate_method_probes, generate_sequence_probes, generate_type_probes
 from .sandbox import DEFAULT_TIMEOUT, introspect, observe_cov
 from .witness import ledger_probes, load_ledger
 
@@ -100,11 +100,16 @@ class Target:
         return res or None
 
     def type_probes(self, count: int = DEFAULT_COUNT, resolver=None) -> list[Probe]:
+        count = max(count, STANDARD_COUNT)  # the identity needs the full standard set
         if self.kind == "function":
             return generate_type_probes(self.spec, count, resolver)
         if self.kind == "method":
             return generate_method_probes(self.spec, self.method, count, resolver)
         return generate_sequence_probes(self.spec, count, resolver=resolver)
+
+    def standard_ids(self, resolver=None) -> set[str]:
+        """Ids of the probes the identity is computed on: the first STANDARD_COUNT generated ones."""
+        return {p.id for p in self.type_probes(STANDARD_COUNT, resolver)}
 
     def ledger_probes(self, root, resolver=None) -> list[Probe]:
         ledger = load_ledger(root, self.path, self.name)
@@ -138,9 +143,9 @@ class Target:
         fn = self.spec.name if self.kind == "function" else ""
         return observe_cov(self.path, fn, probes, timeout, class_name=self.class_name, properties=self.properties())
 
-    def manifest(self, probes: list[Probe], obs: list[dict], cov: list[set[int]] | None = None) -> Manifest:
+    def manifest(self, probes: list[Probe], obs: list[dict], cov: list[set[int]] | None = None, resolver=None) -> Manifest:
         summary = coverage_summary(self.lines(), cov, self.decisions()) if cov is not None else None
-        return build_manifest_for(self.describe(), self.sig(), probes, obs, summary)
+        return build_manifest_for(self.describe(), self.sig(), probes, obs, summary, self.standard_ids(resolver))
 
     def source(self) -> str:
         return self.spec.source

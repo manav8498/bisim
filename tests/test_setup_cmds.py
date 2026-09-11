@@ -33,9 +33,9 @@ def test_install_hook_outside_git(tmp_path, capsys):
 def test_config_count_is_used(tmp_path, capsys):
     main(["init", "--root", str(tmp_path)])
     cfg = tmp_path / ".bisim" / "config.json"
-    cfg.write_text(json.dumps({"count": 24}))
+    cfg.write_text(json.dumps({"count": 96}))
     m = tmp_path / "m.py"
     m.write_text("def f(x: int) -> int:\n    return x\n")
     capsys.readouterr()
     code = main(["hash", f"{m}:f", "--json", "--root", str(tmp_path)])
-    assert code == 0 and json.loads(capsys.readouterr().out)["counts"]["type"] == 24
+    assert code == 0 and json.loads(capsys.readouterr().out)["counts"]["type"] == 96

@@ -10,11 +10,12 @@ from .probes import PROBEGEN_VERSION, Probe, sig_hash  # re-exported
 
 __all__ = [
     "FORMAT", "PREFIX", "sig_hash", "obs_hash", "merkle_root", "compute_address",
-    "ProbeRecord", "Manifest", "build_manifest", "build_manifest_for", "coverage_summary",
+    "ProbeRecord", "Manifest", "build_manifest", "build_manifest_for", "coverage_summary", "behavior_key", "EVIDENCE_PREFIX",
 ]
 
 FORMAT = "bisim-manifest/1"
 PREFIX = "bsm1:"
+EVIDENCE_PREFIX = "bse1:"
 
 
 def obs_hash(record: dict) -> str:
@@ -58,6 +59,8 @@ class Manifest:
     root: str
     address: str
     coverage: dict | None = None  # reported only, never part of the address
+    evidence: str = ""  # hash of witnessed and suggested (input, result) pairs; "" when there are none
+    standard_count: int = 0  # how many generated probes the address was computed on
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -67,6 +70,8 @@ class Manifest:
         d = dict(d)
         d["probes"] = [ProbeRecord(**p) for p in d["probes"]]
         d.setdefault("coverage", None)
+        d.setdefault("evidence", "")
+        d.setdefault("standard_count", 0)
         return Manifest(**d)
 
     def short(self) -> str:
@@ -125,17 +130,33 @@ def _obs_opaque(o: dict) -> bool:
     return any(is_opaque(st.get("value", [])) for st in o.get("steps", []))
 
 
-def build_manifest_for(target: dict, sig: str, probes: list[Probe], observations: list[dict], coverage: dict | None = None) -> Manifest:
-    """``target`` describes what was probed (kind, name, params …); ``sig`` is its interface hash."""
+def behavior_key(probes: list[Probe], observations: list[dict]) -> str:
+    """Merkle root over every (input, result) pair given. Used to group candidates in ``mint``."""
+    return merkle_root([sha256_hex(p.id + obs_hash(o)) for p, o in zip(probes, observations)])
+
+
+def build_manifest_for(target: dict, sig: str, probes: list[Probe], observations: list[dict], coverage: dict | None = None,
+                       standard_ids: set[str] | None = None) -> Manifest:
+    """``target`` describes what was probed (kind, name, params ...); ``sig`` is its interface hash.
+
+    The address (identity) is computed only over the standard generated probes, so it does not
+    change when a person adds a witness or when more probes are run. Witnessed and suggested
+    probes go into the separate evidence hash. When ``standard_ids`` is None every probe counts
+    toward the address (used by tests and by callers that build their own probe sets)."""
     if len(probes) != len(observations):
         raise ValueError("probes and observations differ in length")
     recs = []
     for p, o in zip(probes, observations):
         recs.append(ProbeRecord(p.id, p.kind, canon(list(p.args)), o, obs_hash(o), _obs_opaque(o)))
-    leaves = [sha256_hex(r.id + r.obs_hash) for r in recs]
-    root = merkle_root(leaves)
+    if standard_ids is None:
+        std = recs
+    else:
+        std = [r for r in recs if r.id in standard_ids]
+    root = merkle_root([sha256_hex(r.id + r.obs_hash) for r in std])
+    ev = [r for r in recs if r.kind in ("witness", "suggested")]
+    evidence = (EVIDENCE_PREFIX + merkle_root([sha256_hex(r.id + r.obs_hash) for r in ev])) if ev else ""
     return Manifest(FORMAT, PROBEGEN_VERSION, {"python": platform.python_version()}, target, sig, recs, root,
-                    compute_address(sig, root), coverage)
+                    compute_address(sig, root), coverage, evidence, len(std))
 
 
 def build_manifest(spec: FunctionSpec, probes: list[Probe], observations: list[dict], coverage: dict | None = None) -> Manifest:

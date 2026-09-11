@@ -61,10 +61,12 @@ def cmd_hash(args) -> int:
             reg.push(m, r.target.source(), meta)
             pushed_remote = True
     if args.json:
-        _emit_json({"address": m.address, "short": m.short(), "counts": m.counts(), "warnings": r.warnings, "manifest": m.to_dict()})
+        _emit_json({"address": m.address, "evidence": m.evidence, "short": m.short(), "counts": m.counts(), "warnings": r.warnings, "manifest": m.to_dict()})
     else:
         c = m.counts()
         print(f"{m.address}")
+        if m.evidence:
+            print(f"  evidence {m.evidence}")
         print(f"  {r.target.signature_str()}")
         print(f"  probes={len(m.probes)} (type={c['type']} witness={c['witness']} suggested={c['suggested']})  python={m.runtime['python']}  probegen={m.probegen}")
         if m.coverage:
@@ -85,6 +87,7 @@ def _diff_to_dict(d: DiffResult) -> dict:
         "same": d.same, "signature_changed": d.signature_changed, "old_address": d.old_address,
         "new_address": d.new_address, "exit_code": d.exit_code, "warnings": d.warnings,
         "probe_count": d.probe_count, "growth_rounds": d.growth_rounds, "coverage": d.coverage,
+        "old_evidence": d.old_evidence, "new_evidence": d.new_evidence,
         "changes": [dataclasses.asdict(c) for c in d.changes],
     }
 
@@ -97,7 +100,10 @@ def print_diff(d: DiffResult, label_old: str = "old", label_new: str = "new") ->
     if d.same:
         print(f"SAME  {d.old_address}  ({d.probe_count} probes agree{grown})")
     else:
-        print(f"CHANGED  {label_old}={d.old_address[:17]}…  {label_new}={d.new_address[:17]}…")
+        if d.old_address == d.new_address:
+            print(f"CHANGED  same identity {d.old_address[:17]}... but witnessed or extra probes differ")
+        else:
+            print(f"CHANGED  {label_old}={d.old_address[:17]}...  {label_new}={d.new_address[:17]}...")
         print(f"  changed on {len(d.changes)} of {d.probe_count} inputs ({d.witnessed_changes} witnessed{grown})")
         ordered = sorted(d.changes, key=lambda c: (c.kind != "witness", len(fmt_args(c.args))))
         rows = [(fmt_args(c.args), c.kind, describe_obs(c.old), describe_obs(c.new)) for c in ordered]
@@ -108,7 +114,7 @@ def print_diff(d: DiffResult, label_old: str = "old", label_new: str = "new") ->
             flag = "!" if k == "witness" else " "
             print(f"{flag} {clip(a, w0).ljust(w0)}  {k.ljust(9)}  {clip(o, w2).ljust(w2)}  {clip(n, 40)}")
         if len(rows) > MAX_ROWS:
-            print(f"  … and {len(rows) - MAX_ROWS} more (--json lists every input)")
+            print(f"  ... and {len(rows) - MAX_ROWS} more (--json lists every input)")
     for w in d.warnings:
         print(f"  warning: {w}")
 

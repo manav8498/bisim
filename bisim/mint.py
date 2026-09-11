@@ -16,7 +16,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from .address import build_manifest_for, obs_hash
+from .address import behavior_key, build_manifest_for, obs_hash
 from .canon import canon, canon_json, dumps, parse_literal, uncanon
 from .core import merge_probes
 from .extract import ClassSpec, FunctionSpec
@@ -270,7 +270,8 @@ def _consistent(obs: list[dict], probes: list[Probe], ledger: Ledger) -> bool:
 
 
 def _address_of(spec, probes, obs) -> str:
-    return build_manifest_for(_desc(spec), _sig(spec), probes, obs).address
+    """Grouping key for candidates: behavior on every probe run, not just the standard ones."""
+    return behavior_key(probes, obs)
 
 
 @dataclass
@@ -413,7 +414,9 @@ def mint(intent: str, spec: FunctionSpec, client: CandidateClient, answerer: Ans
     source = cands[chosen]
     with open(out_path, "w", encoding="utf-8") as fh:
         fh.write(source.rstrip() + "\n")
-    manifest = build_manifest_for(_desc(spec), _sig(spec), probes, obs_by_cand[chosen])
+    from .target import Target
+
+    manifest = Target.load(out_path, spec.name).manifest(probes, obs_by_cand[chosen])
     push(root, manifest, source, {"name": spec.name, "intent": intent, "witness_count": len(ledger.witnesses), "path": out_path})
 
     test_path = None

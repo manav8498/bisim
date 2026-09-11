@@ -95,7 +95,7 @@ def hash_target(path: str, name: str, root=None, timeout: float = DEFAULT_TIMEOU
     resolver = t.resolver()
     probes, warnings = t.probes(root, count, resolver)
     obs, cov = t.observe(probes, timeout)
-    m = t.manifest(probes, obs, cov)
+    m = t.manifest(probes, obs, cov, resolver)
     summary = m.coverage
     if any(r.opaque for r in m.probes):
         warnings.append("some observations are opaque (repr-based); the address may be less portable")
@@ -134,6 +134,8 @@ class DiffResult:
     probe_count: int = 0
     growth_rounds: int = 0
     coverage: dict | None = None  # {"old": summary, "new": summary}
+    old_evidence: str = ""
+    new_evidence: str = ""
 
     @property
     def witnessed_changes(self) -> int:
@@ -186,8 +188,8 @@ def diff_targets(old_path: str, old_name: str, new_path: str, new_name: str, roo
         prev_hit = hit
         count = min(count * 2, max_count)
         rounds += 1
-    mo = build_manifest_for(to.describe(), to.sig(), probes, oo, summ_o)
-    mn = build_manifest_for(tn.describe(), tn.sig(), probes, on, summ_n)
+    mo = build_manifest_for(to.describe(), to.sig(), probes, oo, summ_o, to.standard_ids(resolver))
+    mn = build_manifest_for(tn.describe(), tn.sig(), probes, on, summ_n, tn.standard_ids(resolver))
     changes = [Change(p.id, p.kind, canon(list(p.args)), a, b) for p, a, b in zip(probes, oo, on) if a != b]
     warnings = wo + wn
     if mo.runtime != mn.runtime:
@@ -199,7 +201,7 @@ def diff_targets(old_path: str, old_name: str, new_path: str, new_name: str, roo
             warnings.append(f"{label} {os.path.basename(t.path)}:{t.name} branches never taken: {', '.join(summ['branches']['missed'])}")
     code = 0 if not changes else (2 if any(c.kind == "witness" for c in changes) else 1)
     return DiffResult(not changes, False, mo.address, mn.address, changes, code, warnings, len(probes), rounds,
-                      {"old": summ_o, "new": summ_n})
+                      {"old": summ_o, "new": summ_n}, mo.evidence, mn.evidence)
 
 
 def diff_functions(old_path: str, old_fn: str, new_path: str, new_fn: str, root=None, timeout: float = DEFAULT_TIMEOUT,

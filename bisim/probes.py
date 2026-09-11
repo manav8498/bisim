@@ -17,6 +17,7 @@ from .extract import ClassSpec, FunctionSpec, Unsupported
 PROBEGEN_VERSION = "v1"
 MAX_DEPTH = 3
 DEFAULT_COUNT = 48
+STANDARD_COUNT = 48  # the identity is always computed on exactly this many generated probes
 
 
 def sig_hash(spec: FunctionSpec) -> str:
