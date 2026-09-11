@@ -45,6 +45,11 @@ correct in controlled studies, and "there is no oracle for specification correct
 user." Meanwhile every content-addressed code system (Unison, Aura, Sem, Nulang) hashes *syntax* and
 stops there — Aura's docs say it outright: "Reasoning about behavior is the job of tests."
 
+The cost is measured: a Feb 2026 differential-fuzzing study of six LLMs found **19–35% of
+LLM-generated refactorings are not functionally equivalent** to the original, and **~21% of those slip
+past the existing test suites** ([arXiv 2602.15761](https://arxiv.org/abs/2602.15761)). Tests passing
+is not the same as behavior preserved.
+
 `bisim` makes behavior the identity, and makes the human the oracle on exactly — and only — the inputs
 that matter.
 
@@ -137,13 +142,14 @@ but a persistent, versioned, content-addressed record of intent that `diff` and 
 |---|---|---|
 | Content-addressed code | Unison, Aura VCS, Sem, protein-hash, Nulang, Rust `semantic-diff`, Dhall | All hash **syntax** (AST/MIR/normal forms). Aura: "Two nodes with different hashes… might be equivalent at runtime; Aura does not try to prove that." |
 | Behavior fingerprints | behaviorprint (JS), fnprint (binaries), BeCoV (arXiv 2604.16933), hand-rolled snippets | Diff reports and archives, not identities. BeCoV observes whatever the existing test suite happens to hit; its authors list "robust fingerprinting" and "branching and merging" as future work. |
+| Change-directed test generation | SemaDiff (2607.13111), DiffTestGen (2607.16024), Testora (2503.18597), differential fuzzing (2602.15761) | Per-PR, model-generated tests: nondeterministic, no stable identity across commits or machines, no human ledger. Strong evidence the *problem* is real (they expose behavioral differences in ~76–78% of PRs). |
 | Interactive intent elicitation | TiCoder (MSR), CodeT/AlphaCode clustering | Ephemeral: nothing persists, nothing is versioned, nothing is reused. |
 | "Version behavior" framing | Morph | Versions eval *scores* per commit; no function-level behavioral identity, no witnessing. |
 | Intent tooling for agents | northstar, IIC, taskwitness, tink, witness | Intent is *written* (frozen requirements, hash-locked Given/When/Then), not *discovered* on discriminating inputs, and never becomes the code's identity. |
 
 **The composition — a deterministic, signature-derived probe set that makes behavior a stable identity,
 signed by human-witnessed discriminating inputs, used as the unit of diff, CI gating, and reuse — had
-no prior instance in a sweep of arXiv, GitHub, HN, PyPI and X through 2026-09-11.** Each ingredient
+no prior instance in two sweeps of arXiv, GitHub, HN, PyPI and X through 2026-09-11.** Each ingredient
 existed somewhere. The primitive did not. (Git was Merkle trees + diffs + DAGs; none were new either.)
 
 ## Limitations (v1, deliberate)
