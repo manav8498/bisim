@@ -268,6 +268,60 @@ def cmd_lookup(args) -> int:
     return EXIT_SAME
 
 
+HOOK = """#!/usr/bin/env bash
+# installed by `bisim install-hook` — behavioral gate before every commit
+set -u
+if ! command -v bisim >/dev/null 2>&1; then echo "bisim: not on PATH, skipping behavioral check"; exit 0; fi
+bisim check --base HEAD
+code=$?
+if [ "$code" -ge 2 ]; then
+  echo "bisim: commit blocked (exit $code) — a witnessed behavior changed, or a function was refused. Use --no-verify to bypass."
+  exit 1
+fi
+exit 0
+"""
+
+
+def cmd_init(args) -> int:
+    from .registry import load_config
+
+    root = os.path.abspath(args.root or os.getcwd())
+    base = os.path.join(root, ".bisim")
+    for sub in ("witness", "store"):
+        os.makedirs(os.path.join(base, sub), exist_ok=True)
+    cfg = load_config(root)
+    cfg.setdefault("count", 48)
+    cfg.setdefault("timeout", DEFAULT_TIMEOUT)
+    if args.registry:
+        cfg["registry"] = args.registry
+    with open(os.path.join(base, "config.json"), "w", encoding="utf-8") as fh:
+        fh.write(json.dumps(cfg, indent=1, sort_keys=True) + "\n")
+    gi = os.path.join(root, ".gitignore")
+    existing = open(gi, encoding="utf-8").read() if os.path.exists(gi) else ""
+    if ".bisim/store/" not in existing:
+        with open(gi, "a", encoding="utf-8") as fh:
+            fh.write(("" if existing.endswith("\n") or not existing else "\n") + ".bisim/store/\n")
+    print(f"initialized {base}")
+    print("  .bisim/witness/   human intent ledgers — commit these")
+    print("  .bisim/store/     local registry of implementations — ignored by git (content-addressed, regenerable)")
+    print("  .bisim/config.json" + (f"   registry={cfg['registry']}" if cfg.get("registry") else ""))
+    return EXIT_SAME
+
+
+def cmd_install_hook(args) -> int:
+    root = os.path.abspath(args.root or os.getcwd())
+    hooks = os.path.join(root, ".git", "hooks")
+    if not os.path.isdir(os.path.join(root, ".git")):
+        raise CliError(f"{root} is not a git repository root")
+    os.makedirs(hooks, exist_ok=True)
+    path = os.path.join(hooks, "pre-commit")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(HOOK)
+    os.chmod(path, 0o755)
+    print(f"installed {path}")
+    return EXIT_SAME
+
+
 def cmd_serve(args) -> int:
     from .registry import make_server
 
@@ -393,6 +447,15 @@ def build_parser() -> argparse.ArgumentParser:
     common(lk)
     lk.set_defaults(func=cmd_lookup)
 
+    ini = sub.add_parser("init", help="create .bisim/ (ledgers, local store, config) in a project")
+    ini.add_argument("--root", help="project root (default: cwd)")
+    ini.add_argument("--registry", help="shared registry URL to record in .bisim/config.json")
+    ini.set_defaults(func=cmd_init)
+
+    ih = sub.add_parser("install-hook", help="install a git pre-commit hook that runs `bisim check`")
+    ih.add_argument("--root", help="git repository root (default: cwd)")
+    ih.set_defaults(func=cmd_install_hook)
+
     sv = sub.add_parser("serve", help="run a shared registry server")
     sv.add_argument("--dir", default=".bisim/registry", help="directory to store objects in")
     sv.add_argument("--host", default="127.0.0.1")
@@ -401,12 +464,27 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _apply_config(args) -> None:
+    """Fill --count/--timeout from .bisim/config.json when the user did not pass them."""
+    from .registry import load_config
+
+    try:
+        cfg = load_config(find_root(args.root) if getattr(args, "root", None) else find_root())
+    except Exception:  # noqa: BLE001
+        return
+    if getattr(args, "count", None) == 48 and isinstance(cfg.get("count"), int):
+        args.count = cfg["count"]
+    if getattr(args, "timeout", None) == DEFAULT_TIMEOUT and isinstance(cfg.get("timeout"), (int, float)):
+        args.timeout = float(cfg["timeout"])
+
+
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):
         parser.print_help(sys.stderr)
         return EXIT_ERROR
+    _apply_config(args)
     try:
         return args.func(args)
     except (Unsupported, Nondeterministic) as e:
