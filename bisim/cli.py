@@ -18,6 +18,7 @@ from .store import lookup, push
 from .witness import add_witness, load_ledger, save_ledger
 
 EXIT_SAME, EXIT_CHANGED, EXIT_WITNESS, EXIT_REFUSED, EXIT_ERROR = 0, 1, 2, 3, 4
+MAX_ROWS = 12
 
 
 class CliError(Exception):
@@ -87,9 +88,11 @@ def print_diff(d: DiffResult, label_old: str = "old", label_new: str = "new") ->
         w0 = min(max(len(r[0]) for r in rows), 40)
         w2 = min(max(len(r[2]) for r in rows), 30)
         print(f"  {'input'.ljust(w0)}  {'kind'.ljust(9)}  {label_old.ljust(w2)}  {label_new}")
-        for a, k, o, n in rows:
+        for a, k, o, n in rows[:MAX_ROWS]:
             flag = "!" if k == "witness" else " "
             print(f"{flag} {clip(a, w0).ljust(w0)}  {k.ljust(9)}  {clip(o, w2).ljust(w2)}  {clip(n, 40)}")
+        if len(rows) > MAX_ROWS:
+            print(f"  … and {len(rows) - MAX_ROWS} more (--json lists every input)")
     for w in d.warnings:
         print(f"  warning: {w}")
 
