@@ -86,19 +86,21 @@ class AnthropicClient:
             client = anthropic.Anthropic()
         self.client = client
 
-    def generate(self, intent: str, spec: FunctionSpec, k: int, witnesses: list[Witness]) -> Generation:
+    def complete(self, system: str, prompt: str) -> str:
         with self.client.messages.stream(
             model=self.model,
             max_tokens=self.max_tokens,
-            system=SYSTEM,
-            messages=[{"role": "user", "content": build_prompt(intent, spec, k, witnesses)}],
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
         ) as stream:
             msg = stream.get_final_message()
         if msg.stop_reason == "refusal":
             detail = getattr(getattr(msg, "stop_details", None), "explanation", None) or ""
             raise RuntimeError(f"the model refused this request {detail}".rstrip())
-        text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
-        return parse_generation(text)
+        return "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
+
+    def generate(self, intent: str, spec: FunctionSpec, k: int, witnesses: list[Witness]) -> Generation:
+        return parse_generation(self.complete(SYSTEM, build_prompt(intent, spec, k, witnesses)))
 
 
 class ClaudeCodeClient:
@@ -117,13 +119,12 @@ class ClaudeCodeClient:
         self.timeout = timeout
         self._run = runner or subprocess.run
 
-    def generate(self, intent: str, spec: FunctionSpec, k: int, witnesses: list[Witness]) -> Generation:
+    def complete(self, system: str, prompt: str) -> str:
         import subprocess
 
         cmd = [
             self.binary, "-p", "--no-session-persistence", "--output-format", "text",
-            "--tools", "", "--model", self.model, "--system-prompt", SYSTEM,
-            build_prompt(intent, spec, k, witnesses),
+            "--tools", "", "--model", self.model, "--system-prompt", system, prompt,
         ]
         try:
             proc = self._run(cmd, capture_output=True, text=True, timeout=self.timeout, stdin=subprocess.DEVNULL)
@@ -131,7 +132,10 @@ class ClaudeCodeClient:
             raise RuntimeError("Claude Code (`claude`) is not installed or not on PATH")
         if proc.returncode != 0:
             raise RuntimeError(f"claude -p failed (rc={proc.returncode}): {(proc.stderr or proc.stdout)[-500:]}")
-        return parse_generation(proc.stdout)
+        return proc.stdout
+
+    def generate(self, intent: str, spec: FunctionSpec, k: int, witnesses: list[Witness]) -> Generation:
+        return parse_generation(self.complete(SYSTEM, build_prompt(intent, spec, k, witnesses)))
 
 
 def default_client(model: str | None = None, prefer: str = "auto"):

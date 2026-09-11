@@ -86,6 +86,7 @@ bisim hash    file.py:fn [--push]          address + manifest; --push stores it 
 bisim diff    old.py:fn new.py:fn          behavioral diff; exit 0 same · 1 changed · 2 witnessed intent violated
 bisim check   [--base HEAD]                every changed function in the git worktree vs base — the CI gate
 bisim merge-check <base> --ours A --theirs B   three-way behavioral merge: conflicts git cannot see
+bisim reach   file.py:fn                   model proposes inputs for lines no probe reaches; sandbox verifies; ledger keeps them
 bisim mint    --intent … --sig … --out …   discover intent by asking only where candidates disagree
 bisim witness add file.py:fn --input '[…]' (--expect V | --raises E | --run) [--note …]
 bisim witness list file.py:fn
@@ -141,6 +142,27 @@ address   = "bsm1:" + sha256("bisim/1" | probegen | sig_hash | merkle_root{ sha2
 - **Witnesses** live in `.bisim/witness/<module>/<fn>.json`: the input, the expected observation, who
   recorded it, when, and what alternatives were rejected. They are probes with human authority: a
   diff that changes a witnessed input is an *intent violation* (exit 2), not merely a change (exit 1).
+
+## Reaching what the generator can't
+
+The seeded generator is blind to conditions like `7000 < x < 7100 and s.startswith("zz")`. `bisim hash`
+says so (`coverage=57.1% … missed lines: 3, 5, 7`). `bisim reach` shows the model the function and the
+unreached lines, asks for inputs that execute them, **runs each proposal under coverage** and keeps only
+the ones that verifiably reach a missed line — as `suggested` probes in the ledger, so every later
+`hash`/`diff`/`check` includes them:
+
+```
+$ bisim reach narrow.py:classify
+classify: lines never reached before: 3, 5, 7
+  + (7050, 'zzabc')
+  + (-424242, 'a')
+  + (0, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+  added 3 suggested probe(s), rejected 0 proposal(s)
+  coverage now 100.0%
+```
+
+The model proposes; the sandbox decides. A proposal that doesn't reach a missed line, doesn't run, or
+runs nondeterministically is rejected.
 
 ## How `mint` works
 
@@ -231,16 +253,18 @@ existed somewhere. The primitive did not. (Git was Merkle trees + diffs + DAGs; 
 
 ## Roadmap
 
-Coverage-guided probe growth (add probes until branch coverage plateaus, report it next to the
-address) · effect ledgers (file/network calls as observations) · methods and stateful objects via
-call-sequence probes · a shared registry so agents reuse witnessed implementations instead of
-regenerating them · `bisim check` as a GitHub Action.
+Done since the v1 spec: line coverage per address and growth-until-plateau in `diff`/`check` ·
+`reach` · `merge-check` · confirmation phase in `mint` · evaluation harness · GitHub Action.
+
+Next: methods and stateful objects via call-sequence probes · effect ledgers (file/network calls as
+observations) · branch (not just line) coverage · a shared registry so agents reuse witnessed
+implementations instead of regenerating them.
 
 ## Development
 
 ```bash
 uv venv && uv pip install -e ".[dev]"
-.venv/bin/pytest -q           # 140 tests, ~12 s, offline
+.venv/bin/pytest -q           # 148 tests, ~15 s, offline
 python -m bisim.evalbench     # reproduce the evaluation from cached generations
 bash examples/demo.sh
 ```

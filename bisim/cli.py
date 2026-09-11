@@ -177,6 +177,12 @@ def cmd_check(args) -> int:  # implemented in Task 9
     return run_check(args)
 
 
+def cmd_reach(args) -> int:
+    from .reachcli import run_reach
+
+    return run_reach(args, _target(args.target))
+
+
 def cmd_merge_check(args) -> int:
     from .merge import run_merge_check
 
@@ -221,6 +227,15 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--no-grow", action="store_true", help="do not widen probe sets until coverage plateaus")
     common(c)
     c.set_defaults(func=cmd_check)
+
+    rc = sub.add_parser("reach", help="ask a model for inputs that execute lines no probe reaches; keep the ones that verifiably do")
+    rc.add_argument("target", help="path.py:function")
+    rc.add_argument("--rounds", type=int, default=2)
+    rc.add_argument("--max-inputs", type=int, default=6)
+    rc.add_argument("--model", default=None)
+    rc.add_argument("--client", choices=["auto", "sdk", "claude-code"], default="auto")
+    common(rc)
+    rc.set_defaults(func=cmd_reach)
 
     mc = sub.add_parser("merge-check", help="three-way behavioral merge: do two branches change the same function's behavior on the same inputs?")
     mc.add_argument("base", help="merge base ref")
