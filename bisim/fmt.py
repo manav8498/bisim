@@ -4,23 +4,44 @@ from __future__ import annotations
 from .canon import dumps, is_opaque, uncanon
 
 
+def _val(v) -> str:
+    return dumps(v) if is_opaque(v) else repr(uncanon(v))
+
+
 def describe_obs(o: dict) -> str:
     if o.get("timeout"):
         return "⏱ timeout"
-    if o.get("ok"):
-        v = o["value"]
-        s = dumps(v) if is_opaque(v) else repr(uncanon(v))
-        if o.get("out"):
-            s += f"  [stdout: {o['out']!r}]"
-        return s
-    return f"raises {o.get('exc', '?')}"
+    if not o.get("ok"):
+        return f"{'init ' if o.get('at') == 'init' else ''}raises {o.get('exc', '?')}"
+    if "steps" in o:  # method / class sequence
+        parts = [(_val(st["value"]) if st.get("ok") else f"raises {st.get('exc', '?')}") for st in o["steps"]]
+        s = "; ".join(parts) if parts else "(no calls)"
+        s += f"  → state {_val(o['state'])}"
+    else:
+        s = _val(o["value"])
+    if o.get("out"):
+        s += f"  [stdout: {o['out']!r}]"
+    return s
+
+
+def _is_sequence_args(v) -> bool:
+    return (isinstance(v, tuple) and len(v) == 2 and isinstance(v[0], tuple) and isinstance(v[1], tuple)
+            and all(isinstance(c, tuple) and len(c) == 2 and isinstance(c[0], str) and isinstance(c[1], tuple) for c in v[1]))
 
 
 def fmt_args(canon_args: list) -> str:
     try:
-        return repr(tuple(uncanon(canon_args)))
+        v = tuple(uncanon(canon_args))
     except ValueError:
         return dumps(canon_args)
+    if _is_sequence_args(v):
+        init, calls = v
+        return "; ".join([f"new{_call(init)}"] + [f"{m}{_call(a)}" for m, a in calls])
+    return repr(v)
+
+
+def _call(args: tuple) -> str:
+    return "(" + ", ".join(repr(a) for a in args) + ")"
 
 
 def clip(s: str, n: int) -> str:

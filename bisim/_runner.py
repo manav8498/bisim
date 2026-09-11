@@ -79,6 +79,37 @@ def _introspect(mod, names):
     return res
 
 
+def _state(obj):
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        return obj
+    d = getattr(obj, "__dict__", None)
+    if d is not None:
+        return dict(d)
+    slots = getattr(type(obj), "__slots__", ())
+    return {s: getattr(obj, s) for s in slots if hasattr(obj, s)}
+
+
+def _run_sequence(cls, args, canon):
+    """args = (init_args, ((method, margs), ...)). Exceptions are observations; the sequence stops at the first."""
+    init_args, calls = args
+    try:
+        obj = cls(*init_args)
+    except _Timeout:
+        raise
+    except BaseException as e:  # noqa: BLE001
+        return {"ok": False, "exc": type(e).__name__, "at": "init"}
+    steps = []
+    for m, margs in calls:
+        try:
+            steps.append({"ok": True, "value": canon(getattr(obj, m)(*margs))})
+        except _Timeout:
+            raise
+        except BaseException as e:  # noqa: BLE001
+            steps.append({"ok": False, "exc": type(e).__name__})
+            break
+    return {"ok": True, "steps": steps, "state": canon(_state(obj))}
+
+
 def main():
     from bisim.canon import canon, uncanon
 
@@ -95,11 +126,20 @@ def main():
         out.write(json.dumps({"introspect": _introspect(mod, job["names"])}) + "\n")
         out.flush()
         return
-    fn = getattr(mod, job["func"], None)
-    if not callable(fn):
-        out.write(json.dumps({"fatal": f"function {job['func']} not found in {job['module']}"}) + "\n")
-        out.flush()
-        return
+    cls = None
+    if job.get("class"):
+        cls = getattr(mod, job["class"], None)
+        if not isinstance(cls, type):
+            out.write(json.dumps({"fatal": f"class {job['class']} not found in {job['module']}"}) + "\n")
+            out.flush()
+            return
+        fn = None
+    else:
+        fn = getattr(mod, job["func"], None)
+        if not callable(fn):
+            out.write(json.dumps({"fatal": f"function {job['func']} not found in {job['module']}"}) + "\n")
+            out.flush()
+            return
 
     _block_network()
     _limit_memory()
@@ -131,11 +171,13 @@ def main():
                 if want_cov:
                     sys.settrace(tracer_for(hits))
                 with contextlib.redirect_stdout(buf):
-                    val = fn(*args)
+                    if cls is None:
+                        rec = {"ok": True, "value": canon(fn(*args))}
+                    else:
+                        rec = _run_sequence(cls, args, canon)
             finally:
                 sys.settrace(None)
                 signal.setitimer(signal.ITIMER_REAL, 0)
-            rec = {"ok": True, "value": canon(val)}
         except _Timeout:
             rec = {"timeout": True}
         except BaseException as e:  # noqa: BLE001 - an exception *is* the observation

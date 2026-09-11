@@ -64,10 +64,11 @@ and every "changed" verdict comes with evidence. It can miss a difference that l
 set — which is what witnesses are for. An address is always relative to its probe set; the manifest
 records every probe and observation that went into it.
 
-Enforced by the test suite: 12 behavior-preserving refactors (loop→comprehension, rename, early
-return, helper extraction, statement reorder, …) yield **0 address changes**; 11 planted mutants
-(`<`→`<=`, off-by-one, empty-input handling, exception type, float rounding, unicode length, …) **each
-flip**, and the reported input reproduces the difference on rerun.
+Enforced by the test suite: 15 behavior-preserving refactors (loop→comprehension, rename, early
+return, helper extraction, statement reorder, class rewrites, …) yield **0 address changes**; 14 planted
+mutants (`<`→`<=`, off-by-one, empty-input handling, exception type, float rounding, unicode length,
+LIFO→FIFO, state mutated before raising, …) **each flip**, and the reported input reproduces the
+difference on rerun.
 
 ## Install
 
@@ -97,6 +98,24 @@ Exit codes: `0` same · `1` changed on generated probes only · `2` changed on a
 signature changed · `3` refused (nondeterministic / unsupported, with the reason) · `4` error.
 
 Run `examples/demo.sh` for the six-step walkthrough.
+
+## Classes and stateful objects
+
+Targets can be functions, methods, or whole classes:
+
+```
+bisim hash  m.py:Stack.push        # one call on a fresh instance: Stack(capacity).push(x)
+bisim hash  m.py:Stack             # seeded call sequences over public methods, length 1–4
+bisim witness add m.py:Stack --init '[2]' --calls '[["push",[1]],["push",[2]],["pop",[]]]' --run --note LIFO
+```
+
+Instances are built from the typed `__init__` (or dataclass fields) by the same seeded generator. An
+observation is the return value (or exception) of each call **and the instance's state afterwards** —
+a method's behavior is what it returns *and* what it does to `self`. So a mutant that mutates state
+before raising, or a `pop` that quietly becomes FIFO, flips the address even when every single-call
+result is unchanged. `check` and `merge-check` pair `Class` and `Class.method` targets automatically.
+
+Not yet: `mint` and `reach` for classes; methods with decorators; properties; class methods.
 
 ## Behavioral merge conflicts
 
@@ -242,12 +261,13 @@ existed somewhere. The primitive did not. (Git was Merkle trees + diffs + DAGs; 
 
 ## Limitations (v1, deliberate)
 
-- Python ≥ 3.11 only; top-level functions with complete type hints; positional arguments.
-- Pure functions. Nondeterminism is refused, not tolerated. File/network side effects are not modeled
-  (network is blocked; the cwd is a scratch dir).
-- Methods, async, generators, `*args/**kwargs`, keyword-only parameters, and parameter types the
-  generator can't construct (arbitrary classes, callables) are refused with a reason. A function with
-  unsupported parameter types can still be addressed **witness-only** if its ledger has inputs.
+- Python ≥ 3.11 only; top-level functions and classes with complete type hints; positional arguments.
+- Deterministic code. Nondeterminism is refused, not tolerated. File/network side effects are not
+  modeled (network is blocked; the cwd is a scratch dir).
+- Async, generators, `*args/**kwargs`, keyword-only parameters, decorated methods, and parameter types
+  the generator can't construct (arbitrary non-dataclass classes, callables) are refused with a reason.
+  A target with unsupported parameter types can still be addressed **witness-only** if its ledger has
+  inputs.
 - Registry is local (`.bisim/store`, git-committable). No SMT, no coverage-guided probe growth.
 - Same address is evidence, not proof. Read the guarantee above.
 
@@ -256,15 +276,17 @@ existed somewhere. The primitive did not. (Git was Merkle trees + diffs + DAGs; 
 Done since the v1 spec: line coverage per address and growth-until-plateau in `diff`/`check` ·
 `reach` · `merge-check` · confirmation phase in `mint` · evaluation harness · GitHub Action.
 
-Next: methods and stateful objects via call-sequence probes · effect ledgers (file/network calls as
-observations) · branch (not just line) coverage · a shared registry so agents reuse witnessed
-implementations instead of regenerating them.
+Done in 0.3.0: methods and classes via constructor + call-sequence probes, with state in observations.
+
+Next: `mint`/`reach` for classes · effect ledgers (file/network calls as observations) · branch (not
+just line) coverage · a shared registry so agents reuse witnessed implementations instead of
+regenerating them.
 
 ## Development
 
 ```bash
 uv venv && uv pip install -e ".[dev]"
-.venv/bin/pytest -q           # 148 tests, ~15 s, offline
+.venv/bin/pytest -q           # 160 tests, ~20 s, offline
 python -m bisim.evalbench     # reproduce the evaluation from cached generations
 bash examples/demo.sh
 ```

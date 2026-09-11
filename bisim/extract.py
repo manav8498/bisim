@@ -71,6 +71,125 @@ def _top_level_defs(src: str):
     return [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
 
 
+# --- classes ----------------------------------------------------------------
+
+@dataclass
+class ClassSpec:
+    name: str
+    init_params: list[tuple[str, str]]
+    methods: dict[str, FunctionSpec]  # params exclude ``self``
+    is_dataclass: bool
+    source: str
+    module_path: str
+    lineno: int
+    lines: list[int] = field(default_factory=list)
+
+    def public_methods(self) -> list[str]:
+        return sorted(m for m in self.methods if not m.startswith("_"))
+
+    def signature_str(self) -> str:
+        init = "(" + ", ".join(f"{n}: {t}" for n, t in self.init_params) + ")"
+        return f"{self.name}{init}"
+
+
+def parse_target(name: str) -> tuple[str | None, str | None]:
+    """``"f"`` → (None, "f"); ``"C.m"`` → ("C", "m"); ``"C"`` → ("C", None). Classes are capitalized."""
+    parts = name.split(".")
+    if len(parts) == 1:
+        n = parts[0]
+        return (n, None) if n[:1].isupper() else (None, n)
+    if len(parts) == 2:
+        return parts[0], parts[1]
+    raise Unsupported(f"target must be 'function', 'Class' or 'Class.method', got {name!r}")
+
+
+def _is_dataclass_decorated(node: ast.ClassDef) -> bool:
+    for d in node.decorator_list:
+        target = d.func if isinstance(d, ast.Call) else d
+        if isinstance(target, ast.Name) and target.id == "dataclass":
+            return True
+        if isinstance(target, ast.Attribute) and target.attr == "dataclass":
+            return True
+    return False
+
+
+def _method_spec(node: ast.FunctionDef, src: str, path: str) -> FunctionSpec:
+    if node.decorator_list:
+        raise Unsupported(f"{node.name}: decorated methods are not supported")
+    a = node.args
+    if not (a.posonlyargs + a.args) or (a.posonlyargs + a.args)[0].arg != "self":
+        raise Unsupported(f"{node.name}: first parameter must be self")
+    spec = _spec_from_def(_without_self(node), src, path)
+    spec.name = node.name
+    return spec
+
+
+def _without_self(node: ast.FunctionDef) -> ast.FunctionDef:
+    import copy
+
+    n = copy.copy(node)
+    n.args = copy.copy(node.args)
+    if n.args.posonlyargs:
+        n.args.posonlyargs = n.args.posonlyargs[1:]
+    else:
+        n.args.args = n.args.args[1:]
+    return n
+
+
+def _class_spec(node: ast.ClassDef, src: str, path: str) -> ClassSpec:
+    is_dc = _is_dataclass_decorated(node)
+    init_params: list[tuple[str, str]] = []
+    methods: dict[str, FunctionSpec] = {}
+    init_node = None
+    for item in node.body:
+        if isinstance(item, ast.FunctionDef) and item.name == "__init__":
+            init_node = item
+        elif isinstance(item, ast.FunctionDef) and not (item.name.startswith("__") and item.name.endswith("__")):
+            try:
+                methods[item.name] = _method_spec(item, src, path)
+            except Unsupported:
+                continue
+        elif isinstance(item, ast.AsyncFunctionDef):
+            continue
+    if is_dc:
+        for item in node.body:
+            if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+                t = ast.unparse(item.annotation)
+                if t.startswith("ClassVar"):
+                    continue
+                init_params.append((item.target.id, t))
+    elif init_node is not None:
+        a = init_node.args
+        if a.vararg or a.kwarg or a.kwonlyargs:
+            raise Unsupported(f"{node.name}.__init__: *args/**kwargs/keyword-only parameters are not supported")
+        for arg in (a.posonlyargs + a.args)[1:]:
+            if arg.annotation is None:
+                raise Unsupported(f"{node.name}.__init__: missing type hint for parameter '{arg.arg}'")
+            init_params.append((arg.arg, ast.unparse(arg.annotation)))
+    lines = sorted({l for item in node.body if isinstance(item, ast.FunctionDef) for l in _executable_lines(item)})
+    return ClassSpec(node.name, init_params, methods, is_dc, ast.get_source_segment(src, node) or "", path, node.lineno, lines)
+
+
+def extract_class(path: str, name: str) -> ClassSpec:
+    src = _read(path)
+    for n in ast.parse(src).body:
+        if isinstance(n, ast.ClassDef) and n.name == name:
+            return _class_spec(n, src, path)
+    raise NotFound(f"no top-level class named '{name}' in {path}")
+
+
+def extract_classes(path: str) -> list[ClassSpec]:
+    src = _read(path)
+    out = []
+    for n in ast.parse(src).body:
+        if isinstance(n, ast.ClassDef):
+            try:
+                out.append(_class_spec(n, src, path))
+            except Unsupported:
+                pass
+    return out
+
+
 def _read(path: str) -> str:
     with open(path, encoding="utf-8") as fh:
         return fh.read()

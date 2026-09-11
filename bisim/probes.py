@@ -12,7 +12,7 @@ import random
 from dataclasses import dataclass
 
 from .canon import canon_json, sha256_hex
-from .extract import FunctionSpec, Unsupported
+from .extract import ClassSpec, FunctionSpec, Unsupported
 
 PROBEGEN_VERSION = "v1"
 MAX_DEPTH = 3
@@ -249,4 +249,83 @@ def generate_type_probes(spec: FunctionSpec, count: int = DEFAULT_COUNT, resolve
     while len(probes) < count and guard < count * 20:
         guard += 1
         add([rng.choice(pool[i]) if rng.random() < 0.6 else strategies[i].draw(rng) for i in range(len(strategies))])
+    return probes[:count]
+
+
+# --- classes: instances, single method calls, call sequences ------------------
+
+def class_sig_hash(cls: ClassSpec, method: str | None = None) -> str:
+    """Identity of the interface being probed: constructor types plus the method's (or every public
+    method's, by name) parameter and return types."""
+    parts: list = [[t for _, t in cls.init_params]]
+    names = [method] if method else cls.public_methods()
+    for m in names:
+        f = cls.methods[m]
+        parts.append([m, [t for _, t in f.params], f.returns])
+    return sha256_hex(canon_json(parts))
+
+
+def _rng_for(seed_text: str) -> random.Random:
+    return random.Random(int(sha256_hex(seed_text)[:16], 16))
+
+
+def _draw_args(strategies: list[TypeStrategy], rng: random.Random, boundary_index: int | None = None) -> tuple:
+    if boundary_index is not None:
+        return tuple(s.boundaries[boundary_index % len(s.boundaries)] for s in strategies)
+    return tuple(rng.choice(s.boundaries) if rng.random() < 0.5 else s.draw(rng) for s in strategies)
+
+
+def generate_method_probes(cls: ClassSpec, method: str, count: int = DEFAULT_COUNT, resolver=None) -> list[Probe]:
+    """Probes of the form ``(init_args, ((method, args),))``: one call on a fresh instance."""
+    if method not in cls.methods:
+        raise Unsupported(f"{cls.name}.{method}: not a supported method")
+    init_s = [strategy_for(t, resolver) for _, t in cls.init_params]
+    meth_s = [strategy_for(t, resolver) for _, t in cls.methods[method].params]
+    rng = _rng_for(class_sig_hash(cls, method) + "|method")
+    probes, seen = [], set()
+
+    def add(init, margs):
+        p = Probe((tuple(init), ((method, tuple(margs)),)), "type")
+        if p.id not in seen:
+            seen.add(p.id)
+            probes.append(p)
+
+    max_b = max([len(s.boundaries) for s in init_s + meth_s], default=1)
+    for j in range(max_b):
+        add(_draw_args(init_s, rng, j), _draw_args(meth_s, rng, j))
+    guard = 0
+    while len(probes) < count and guard < count * 20:
+        guard += 1
+        add(_draw_args(init_s, rng), _draw_args(meth_s, rng))
+    return probes[:count]
+
+
+def generate_sequence_probes(cls: ClassSpec, count: int = DEFAULT_COUNT, max_len: int = 4, resolver=None) -> list[Probe]:
+    """Probes of the form ``(init_args, ((m1, args), (m2, args), ...))`` over public methods."""
+    names = cls.public_methods()
+    if not names:
+        raise Unsupported(f"{cls.name}: no supported public methods to probe")
+    init_s = [strategy_for(t, resolver) for _, t in cls.init_params]
+    meth_s = {m: [strategy_for(t, resolver) for _, t in cls.methods[m].params] for m in names}
+    rng = _rng_for(class_sig_hash(cls) + "|sequence")
+    probes, seen = [], set()
+
+    def add(init, calls):
+        p = Probe((tuple(init), tuple(calls)), "type")
+        if p.id not in seen:
+            seen.add(p.id)
+            probes.append(p)
+
+    # Phase A: every public method alone on boundary instances/args.
+    for m in names:
+        max_b = max([len(s.boundaries) for s in init_s + meth_s[m]], default=1)
+        for j in range(min(max_b, 4)):
+            add(_draw_args(init_s, rng, j), [(m, _draw_args(meth_s[m], rng, j))])
+    # Phase B: seeded sequences.
+    guard = 0
+    while len(probes) < count and guard < count * 20:
+        guard += 1
+        length = rng.randint(1, max_len)
+        calls = [(m, _draw_args(meth_s[m], rng)) for m in (rng.choice(names) for _ in range(length))]
+        add(_draw_args(init_s, rng), calls)
     return probes[:count]

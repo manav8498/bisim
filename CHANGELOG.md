@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 — 2026-09-11
+
+- Targets: `path.py:Class.method` (one call on a fresh instance) and `path.py:Class` (seeded call
+  sequences over public methods, length 1–4). Instances built from typed `__init__` or dataclass
+  fields. Observations include the instance state after the call(s).
+- `witness add --init/--calls` for method and class targets; `check` and `merge-check` pair
+  `Class` and `Class.method` targets.
+- Negative-control suite extended with 3 class refactor pairs and 3 class mutants (incl. a mutant
+  that only differs in state).
+- Internal: `Target` adapter; `hash_target`/`diff_targets` generalize `hash_function`/`diff_functions`.
+
 ## 0.2.0 — 2026-09-11
 
 - `hash` reports line coverage of the probe set and names unreached lines; `diff`/`check` widen the

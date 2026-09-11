@@ -10,10 +10,19 @@ from bisim.sandbox import observe, run_probes
 FIX = pathlib.Path(__file__).parent / "fixtures"
 
 
-def addr(path, name="f"):
-    spec = extract_function(str(path), name)
-    probes = generate_type_probes(spec)
-    return build_manifest(spec, probes, observe(str(path), name, probes)), probes
+def addr(path, name=None):
+    from bisim.core import hash_target
+
+    name = name or ("C" if "class_" in str(path) else "f")
+    r = hash_target(str(path), name, root=path.parent)
+    return r.manifest, r.probes
+
+
+def _rerun(path, probe):
+    from bisim.target import Target
+
+    t = Target.load(str(path), "C" if "class_" in str(path) else "f")
+    return t.observe([probe])[0]
 
 
 def test_sig_hash_ignores_names():
@@ -59,4 +68,4 @@ def test_mutant_pairs_flip_with_evidence(pair):
     assert diffs, pair
     # the evidence must reproduce: rerun exactly the first differing probe on both sides
     p = next(pr for pr in probes if pr.id == diffs[0][0].id)
-    assert run_probes(str(pa), "f", [p]) != run_probes(str(pb), "f", [p]), pair
+    assert _rerun(pa, p) != _rerun(pb, p), pair

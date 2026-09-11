@@ -13,14 +13,13 @@ import sys
 import tempfile
 from dataclasses import asdict, dataclass, field
 
-from .address import obs_hash, sig_hash
+from .address import obs_hash
 from .canon import canon
 from .core import find_root, merge_probes
-from .extract import FunctionSpec, Unsupported, extract_functions
+from .extract import Unsupported
 from .fmt import describe_obs, fmt_args
 from .gitdiff import NotARepo, ensure_repo, file_at_revision, git
-from .probes import generate_type_probes
-from .sandbox import Nondeterministic, SandboxError, observe
+from .sandbox import Nondeterministic, SandboxError
 from .witness import ledger_probes, load_ledger
 
 STATUS_EXIT = {
@@ -45,23 +44,30 @@ def _changed_files(root, a: str, b: str) -> list[str]:
     return [l.strip() for l in out.splitlines() if l.strip()]
 
 
-def _specs_at(root, rel: str, rev: str, tmpdir: str) -> dict[str, FunctionSpec]:
+def _specs_at(root, rel: str, rev: str, tmpdir: str) -> dict[str, "Target"]:
+    """Targets (functions, classes, Class.method) defined in ``rel`` at ``rev``, keyed by name."""
+    from .gitdiff import _safe_extract
+    from .target import Target
+
     src = file_at_revision(root, rel, rev)
     if src is None:
         return {}
     path = os.path.join(tmpdir, f"{rev.replace('/', '_')}__{rel.replace(os.sep, '__')}")
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(src)
-    try:
-        return {s.name: s for s in extract_functions(path)}
-    except SyntaxError:
-        return {}
+    out = {}
+    for n in _safe_extract(path):
+        try:
+            out[n.name] = Target.load(path, n.name)
+        except (Unsupported, SyntaxError):
+            continue
+    return out
 
 
-def _probes(root, rel: str, spec: FunctionSpec, count: int):
+def _probes(root, rel: str, t, count: int):
     real = os.path.join(root, rel)
-    ledger = load_ledger(root, real, spec.name, spec)
-    return merge_probes(ledger_probes(ledger), generate_type_probes(spec, count))
+    ledger = load_ledger(root, real, t.name)
+    return merge_probes(ledger_probes(ledger), t.type_probes(count))
 
 
 def merge_check(root, base: str, ours: str, theirs: str, timeout: float = 2.0, count: int = 48) -> list[Row]:
@@ -83,8 +89,8 @@ def merge_check(root, base: str, ours: str, theirs: str, timeout: float = 2.0, c
     return [r for r in rows if r.status != "unchanged"]
 
 
-def _obs(spec: FunctionSpec, probes, timeout):
-    return observe(spec.module_path, spec.name, probes, timeout)
+def _obs(t, probes, timeout):
+    return t.observe(probes, timeout)[0]
 
 
 def _classify(root, rel, name, b, o, t, timeout, count) -> Row:
@@ -95,7 +101,7 @@ def _classify(root, rel, name, b, o, t, timeout, count) -> Row:
             return Row(rel, name, "theirs-only", "added")
         if t is None:
             return Row(rel, name, "ours-only", "added")
-        if sig_hash(o) != sig_hash(t):
+        if o.sig() != t.sig():
             return Row(rel, name, "signature", f"added with different signatures: {o.signature_str()} vs {t.signature_str()}")
         probes = merge_probes(_probes(root, rel, o, count), _probes(root, rel, t, count))
         oo, ot = _obs(o, probes, timeout), _obs(t, probes, timeout)
@@ -107,7 +113,7 @@ def _classify(root, rel, name, b, o, t, timeout, count) -> Row:
     # base exists
     sides = {"ours": o, "theirs": t}
     for label, s in sides.items():
-        if s is not None and sig_hash(s) != sig_hash(b):
+        if s is not None and s.sig() != b.sig():
             return Row(rel, name, "signature", f"{label} changed the signature: {b.signature_str()} -> {s.signature_str()}")
     probes = _probes(root, rel, b, count)
     for s in (o, t):

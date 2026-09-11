@@ -5,7 +5,7 @@ import json
 import sys
 from dataclasses import asdict, dataclass, field
 
-from .core import diff_functions, find_root, hash_function
+from .core import diff_targets, find_root, hash_target
 from .extract import Unsupported
 from .fmt import describe_obs, fmt_args
 from .gitdiff import NotARepo, function_pairs
@@ -33,7 +33,7 @@ def check(root, base: str = "HEAD", timeout: float = 2.0, grow: bool = True) -> 
     for pr in function_pairs(root, base):
         try:
             if pr.old_path and pr.new_path:
-                d = diff_functions(pr.old_path, pr.name, pr.new_path, pr.name, root=root, timeout=timeout, grow=grow)
+                d = diff_targets(pr.old_path, pr.name, pr.new_path, pr.name, root=root, timeout=timeout, grow=grow)
                 if d.signature_changed:
                     rows.append(Row(pr.rel, pr.name, "signature-changed", d.warnings[0]))
                 elif d.same:
@@ -47,7 +47,7 @@ def check(root, base: str = "HEAD", timeout: float = 2.0, grow: bool = True) -> 
                     rows.append(Row(pr.rel, pr.name, status, f"{len(d.changes)}/{d.probe_count} inputs", d.old_address, d.new_address,
                                     len(d.changes), d.witnessed_changes, ev))
             elif pr.new_path:
-                r = hash_function(pr.new_path, pr.name, root=root, timeout=timeout)
+                r = hash_target(pr.new_path, pr.name, root=root, timeout=timeout)
                 rows.append(Row(pr.rel, pr.name, "added", "", "", r.manifest.address))
             else:
                 rows.append(Row(pr.rel, pr.name, "removed"))

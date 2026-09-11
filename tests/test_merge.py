@@ -92,3 +92,23 @@ def test_merge_check_delete_modify(tmp_path, capsys):
     code = main(["merge-check", "main", "--ours", "ours", "--theirs", "deleter", "--json", "--root", str(tmp_path)])
     d = json.loads(capsys.readouterr().out)
     assert next(r for r in d["results"] if r["name"] == "f")["status"] == "delete-modify" and code == 2
+
+
+def test_merge_check_classes(tmp_path, capsys):
+    base = "class Acct:\n    def __init__(self, balance: int):\n        self.balance = balance\n\n    def deposit(self, n: int) -> int:\n        self.balance += n\n        return self.balance\n\n    def withdraw(self, n: int) -> int:\n        self.balance -= n\n        return self.balance\n"
+    ours = base.replace("        self.balance += n\n        return self.balance", "        if n < 0:\n            raise ValueError('negative')\n        self.balance += n\n        return self.balance")
+    theirs = base.replace("        self.balance += n\n        return self.balance", "        self.balance += abs(n)\n        return self.balance")
+    sh("git", "init", "-q", "-b", "main", cwd=tmp_path)
+    (tmp_path / "acct.py").write_text(base)
+    commit(tmp_path, "base")
+    sh("git", "checkout", "-q", "-b", "ours", cwd=tmp_path)
+    (tmp_path / "acct.py").write_text(ours)
+    commit(tmp_path, "ours")
+    sh("git", "checkout", "-q", "-b", "theirs", "main", cwd=tmp_path)
+    (tmp_path / "acct.py").write_text(theirs)
+    commit(tmp_path, "theirs")
+    code = main(["merge-check", "main", "--ours", "ours", "--theirs", "theirs", "--json", "--root", str(tmp_path)])
+    d = json.loads(capsys.readouterr().out)
+    by = {r["name"]: r for r in d["results"]}
+    assert code == 2 and by["Acct.deposit"]["status"] == "conflict" and by["Acct"]["status"] == "conflict"
+    assert "Acct.withdraw" not in by  # untouched method not reported

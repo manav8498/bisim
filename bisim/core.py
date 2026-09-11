@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .address import Manifest, build_manifest, coverage_summary, sig_hash
+from .address import Manifest, build_manifest, build_manifest_for, coverage_summary, sig_hash
 from .canon import canon
 from .extract import FunctionSpec, Unsupported, extract_function
 from .probes import DEFAULT_COUNT, Probe, dataclass_type, generate_type_probes
@@ -80,27 +80,35 @@ def probes_for(spec: FunctionSpec, root, count: int = DEFAULT_COUNT, resolver=No
 @dataclass
 class HashResult:
     manifest: Manifest
-    spec: FunctionSpec
+    spec: object  # FunctionSpec or ClassSpec
     probes: list[Probe]
     warnings: list[str] = field(default_factory=list)
+    target: object = None  # Target
 
 
-def hash_function(path: str, fn: str, root=None, timeout: float = DEFAULT_TIMEOUT, count: int = DEFAULT_COUNT) -> HashResult:
+def hash_target(path: str, name: str, root=None, timeout: float = DEFAULT_TIMEOUT, count: int = DEFAULT_COUNT) -> HashResult:
+    """Address a function, a ``Class.method`` (one call on a fresh instance) or a ``Class`` (call sequences)."""
+    from .target import Target
+
     root = find_root(root or os.path.dirname(os.path.abspath(path)))
-    spec = extract_function(path, fn)
-    resolver = resolver_for(spec)
-    probes, warnings = probes_for(spec, root, count, resolver)
-    obs, cov = observe_cov(path, fn, probes, timeout)
-    summary = coverage_summary(spec, cov)
-    m = build_manifest(spec, probes, obs, summary)
+    t = Target.load(path, name)
+    resolver = t.resolver()
+    probes, warnings = t.probes(root, count, resolver)
+    obs, cov = t.observe(probes, timeout)
+    m = t.manifest(probes, obs, cov)
+    summary = m.coverage
     if any(r.opaque for r in m.probes):
         warnings.append("some observations are opaque (repr-based); the address may be less portable")
     if summary and summary["missed"]:
         warnings.append(
             f"uncovered: {len(probes)} probes never executed line(s) {', '.join(map(str, summary['missed']))} "
-            f"of {fn} — add a witness that reaches them, or raise --count"
+            f"of {t.name} — add a witness that reaches them, or raise --count"
         )
-    return HashResult(m, spec, probes, warnings)
+    return HashResult(m, t.spec, probes, warnings, t)
+
+
+def hash_function(path: str, fn: str, root=None, timeout: float = DEFAULT_TIMEOUT, count: int = DEFAULT_COUNT) -> HashResult:
+    return hash_target(path, fn, root, timeout, count)
 
 
 @dataclass
@@ -148,24 +156,27 @@ def merge_probes(*lists: list[Probe]) -> list[Probe]:
 MAX_COUNT = 480
 
 
-def diff_functions(old_path: str, old_fn: str, new_path: str, new_fn: str, root=None, timeout: float = DEFAULT_TIMEOUT,
-                   count: int = DEFAULT_COUNT, grow: bool = True, max_count: int = MAX_COUNT) -> DiffResult:
-    """Behavioral diff. With ``grow``, the generated probe set is widened (48 → 96 → …) until every
-    executable line of both functions has run at least once, or coverage stops improving."""
+def diff_targets(old_path: str, old_name: str, new_path: str, new_name: str, root=None, timeout: float = DEFAULT_TIMEOUT,
+                 count: int = DEFAULT_COUNT, grow: bool = True, max_count: int = MAX_COUNT) -> DiffResult:
+    """Behavioral diff of two targets (functions, ``Class.method``, or ``Class``). With ``grow``, the
+    generated probe set is widened (48 → 96 → …) until every executable line of both sides has run
+    at least once, or coverage stops improving."""
+    from .target import Target
+
     root = find_root(root or os.path.dirname(os.path.abspath(new_path)))
-    so, sn = extract_function(old_path, old_fn), extract_function(new_path, new_fn)
-    if sig_hash(so) != sig_hash(sn):
-        return DiffResult(False, True, "", "", [], 2, [f"signature changed: {so.signature_str()} -> {sn.signature_str()}"])
-    resolver = resolver_for(sn) or resolver_for(so)
+    to, tn = Target.load(old_path, old_name), Target.load(new_path, new_name)
+    if to.kind != tn.kind or to.sig() != tn.sig():
+        return DiffResult(False, True, "", "", [], 2, [f"signature changed: {to.signature_str()} -> {tn.signature_str()}"])
+    resolver = tn.resolver() or to.resolver()
     rounds = 0
     prev_hit = (-1, -1)
     while True:
-        po, wo = probes_for(so, root, count, resolver)
-        pn, wn = probes_for(sn, root, count, resolver)
+        po, wo = to.probes(root, count, resolver)
+        pn, wn = tn.probes(root, count, resolver)
         probes = merge_probes(po, pn)
-        oo, co = observe_cov(old_path, old_fn, probes, timeout)
-        on, cn = observe_cov(new_path, new_fn, probes, timeout)
-        summ_o, summ_n = coverage_summary(so, co), coverage_summary(sn, cn)
+        oo, co = to.observe(probes, timeout)
+        on, cn = tn.observe(probes, timeout)
+        summ_o, summ_n = coverage_summary(to.lines(), co), coverage_summary(tn.lines(), cn)
         hit = (len(summ_o["hit"]) if summ_o else 0, len(summ_n["hit"]) if summ_n else 0)
         complete = all(s is None or not s["missed"] for s in (summ_o, summ_n))
         if not grow or complete or hit == prev_hit or count >= max_count:
@@ -173,15 +184,20 @@ def diff_functions(old_path: str, old_fn: str, new_path: str, new_fn: str, root=
         prev_hit = hit
         count = min(count * 2, max_count)
         rounds += 1
-    mo = build_manifest(so, probes, oo, summ_o)
-    mn = build_manifest(sn, probes, on, summ_n)
+    mo = build_manifest_for(to.describe(), to.sig(), probes, oo, summ_o)
+    mn = build_manifest_for(tn.describe(), tn.sig(), probes, on, summ_n)
     changes = [Change(p.id, p.kind, canon(list(p.args)), a, b) for p, a, b in zip(probes, oo, on) if a != b]
     warnings = wo + wn
     if mo.runtime != mn.runtime:
         warnings.append("runtimes differ")
-    for label, path, fn, summ in (("old", old_path, old_fn, summ_o), ("new", new_path, new_fn, summ_n)):
+    for label, t, summ in (("old", to, summ_o), ("new", tn, summ_n)):
         if summ and summ["missed"]:
-            warnings.append(f"{label} {os.path.basename(path)}:{fn} line(s) {', '.join(map(str, summ['missed']))} never executed by {len(probes)} probes")
+            warnings.append(f"{label} {os.path.basename(t.path)}:{t.name} line(s) {', '.join(map(str, summ['missed']))} never executed by {len(probes)} probes")
     code = 0 if not changes else (2 if any(c.kind == "witness" for c in changes) else 1)
     return DiffResult(not changes, False, mo.address, mn.address, changes, code, warnings, len(probes), rounds,
                       {"old": summ_o, "new": summ_n})
+
+
+def diff_functions(old_path: str, old_fn: str, new_path: str, new_fn: str, root=None, timeout: float = DEFAULT_TIMEOUT,
+                   count: int = DEFAULT_COUNT, grow: bool = True, max_count: int = MAX_COUNT) -> DiffResult:
+    return diff_targets(old_path, old_fn, new_path, new_fn, root, timeout, count, grow, max_count)

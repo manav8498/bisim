@@ -10,7 +10,7 @@ from .probes import PROBEGEN_VERSION, Probe, sig_hash  # re-exported
 
 __all__ = [
     "FORMAT", "PREFIX", "sig_hash", "obs_hash", "merkle_root", "compute_address",
-    "ProbeRecord", "Manifest", "build_manifest",
+    "ProbeRecord", "Manifest", "build_manifest", "build_manifest_for", "coverage_summary",
 ]
 
 FORMAT = "bisim-manifest/1"
@@ -82,37 +82,43 @@ class Manifest:
         return out
 
 
-def coverage_summary(spec: FunctionSpec, cov: list[set[int]]) -> dict | None:
-    """Line coverage of the function body by the probe set. ``None`` if the spec has no line info."""
-    if not spec.lines:
+def coverage_summary(spec, cov: list[set[int]]) -> dict | None:
+    """Line coverage of the target body by the probe set. ``None`` if the spec has no line info.
+    ``spec`` may be anything with a ``lines`` attribute, or a plain list of lines."""
+    lines = spec if isinstance(spec, list) else getattr(spec, "lines", [])
+    if not lines:
         return None
     hit_all: set[int] = set()
     for c in cov:
         hit_all |= c
-    executable = list(spec.lines)
+    executable = list(lines)
     hit = sorted(l for l in executable if l in hit_all)
     missed = sorted(l for l in executable if l not in hit_all)
     pct = round(100.0 * len(hit) / len(executable), 1) if executable else 100.0
     return {"executable": executable, "hit": hit, "missed": missed, "pct": pct}
 
 
-def build_manifest(spec: FunctionSpec, probes: list[Probe], observations: list[dict], coverage: dict | None = None) -> Manifest:
+def _obs_opaque(o: dict) -> bool:
+    if "value" in o and is_opaque(o["value"]):
+        return True
+    if "state" in o and is_opaque(o["state"]):
+        return True
+    return any(is_opaque(st.get("value", [])) for st in o.get("steps", []))
+
+
+def build_manifest_for(target: dict, sig: str, probes: list[Probe], observations: list[dict], coverage: dict | None = None) -> Manifest:
+    """``target`` describes what was probed (kind, name, params …); ``sig`` is its interface hash."""
     if len(probes) != len(observations):
         raise ValueError("probes and observations differ in length")
     recs = []
     for p, o in zip(probes, observations):
-        recs.append(ProbeRecord(p.id, p.kind, canon(list(p.args)), o, obs_hash(o), is_opaque(o.get("value", []))))
+        recs.append(ProbeRecord(p.id, p.kind, canon(list(p.args)), o, obs_hash(o), _obs_opaque(o)))
     leaves = [sha256_hex(r.id + r.obs_hash) for r in recs]
-    sh = sig_hash(spec)
     root = merkle_root(leaves)
-    return Manifest(
-        FORMAT,
-        PROBEGEN_VERSION,
-        {"python": platform.python_version()},
-        {"name": spec.name, "params": [list(p) for p in spec.params], "returns": spec.returns},
-        sh,
-        recs,
-        root,
-        compute_address(sh, root),
-        coverage,
-    )
+    return Manifest(FORMAT, PROBEGEN_VERSION, {"python": platform.python_version()}, target, sig, recs, root,
+                    compute_address(sig, root), coverage)
+
+
+def build_manifest(spec: FunctionSpec, probes: list[Probe], observations: list[dict], coverage: dict | None = None) -> Manifest:
+    target = {"kind": "function", "name": spec.name, "params": [list(p) for p in spec.params], "returns": spec.returns}
+    return build_manifest_for(target, sig_hash(spec), probes, observations, coverage)

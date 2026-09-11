@@ -9,8 +9,8 @@ import sys
 
 from . import __version__
 from .canon import canon, parse_literal
-from .core import DiffResult, diff_functions, find_root, hash_function
-from .extract import NotFound, Unsupported, extract_function
+from .core import DiffResult, diff_targets, find_root, hash_target
+from .extract import NotFound, Unsupported
 from .fmt import clip, describe_obs, fmt_args
 from .probes import Probe
 from .sandbox import DEFAULT_TIMEOUT, Nondeterministic, SandboxError, observe
@@ -29,8 +29,8 @@ def _target(s: str) -> tuple[str, str]:
     if ":" not in s:
         raise CliError(f"target must look like path.py:function, got {s!r}")
     path, fn = s.rsplit(":", 1)
-    if not fn.isidentifier():
-        raise CliError(f"target must look like path.py:function, got {s!r}")
+    if not fn or not all(part.isidentifier() for part in fn.split(".")):
+        raise CliError(f"target must look like path.py:function, path.py:Class or path.py:Class.method, got {s!r}")
     if not os.path.exists(path):
         raise CliError(f"no such file: {path}")
     return path, fn
@@ -48,16 +48,16 @@ def _emit_json(obj) -> None:
 
 def cmd_hash(args) -> int:
     path, fn = _target(args.target)
-    r = hash_function(path, fn, root=_root(args), timeout=args.timeout, count=args.count)
+    r = hash_target(path, fn, root=_root(args), timeout=args.timeout, count=args.count)
     m = r.manifest
     if args.push:
-        push(_root(args), m, r.spec.source, {"name": fn, "path": os.path.abspath(path), "witness_count": m.counts()["witness"]})
+        push(_root(args), m, r.target.source(), {"name": fn, "path": os.path.abspath(path), "witness_count": m.counts()["witness"]})
     if args.json:
         _emit_json({"address": m.address, "short": m.short(), "counts": m.counts(), "warnings": r.warnings, "manifest": m.to_dict()})
     else:
         c = m.counts()
         print(f"{m.address}")
-        print(f"  {fn}{r.spec.signature_str()}")
+        print(f"  {r.target.signature_str()}")
         print(f"  probes={len(m.probes)} (type={c['type']} witness={c['witness']} suggested={c['suggested']})  python={m.runtime['python']}  probegen={m.probegen}")
         if m.coverage:
             cov = m.coverage
@@ -106,7 +106,7 @@ def print_diff(d: DiffResult, label_old: str = "old", label_new: str = "new") ->
 def cmd_diff(args) -> int:
     op, ofn = _target(args.old)
     np_, nfn = _target(args.new)
-    d = diff_functions(op, ofn, np_, nfn, root=_root(args), timeout=args.timeout, count=args.count, grow=not args.no_grow)
+    d = diff_targets(op, ofn, np_, nfn, root=_root(args), timeout=args.timeout, count=args.count, grow=not args.no_grow)
     if args.json:
         _emit_json(_diff_to_dict(d))
     else:
@@ -115,11 +115,15 @@ def cmd_diff(args) -> int:
 
 
 def cmd_witness(args) -> int:
+    from .target import Target
+
     path, fn = _target(args.target)
     root = _root(args)
-    spec = extract_function(path, fn)
-    ledger = load_ledger(root, path, fn, spec)
-    ledger.signature = spec.signature_str()
+    t = Target.load(path, fn)
+    spec = t.spec
+    ledger = load_ledger(root, path, fn)
+    ledger.function = fn
+    ledger.signature = t.signature_str()
     if args.witness_cmd == "list":
         if args.json:
             _emit_json({"function": fn, "signature": ledger.signature, "witnesses": [dataclasses.asdict(w) for w in ledger.witnesses],
@@ -131,13 +135,9 @@ def cmd_witness(args) -> int:
                 print(f"  {fmt_args(w.args)} -> {describe_obs(w.expect)}{note}")
         return EXIT_SAME
     # add
-    raw = parse_literal(args.input)
-    if not isinstance(raw, (list, tuple)):
-        raise CliError("--input must be a JSON/Python list of arguments, e.g. '[1, 2]'")
-    if len(raw) != len(spec.params):
-        raise CliError(f"--input has {len(raw)} argument(s) but {fn} takes {len(spec.params)}")
+    raw = _witness_args(t, args)
     if args.run:
-        expect = observe(path, fn, [Probe(tuple(raw), "witness")], args.timeout)[0]
+        expect = observe(path, spec.name if t.kind == "function" else "", [Probe(tuple(raw), "witness")], args.timeout, class_name=t.class_name)[0]
     elif args.raises:
         expect = {"ok": False, "exc": args.raises}
     elif args.expect is not None:
@@ -152,6 +152,43 @@ def cmd_witness(args) -> int:
         print(f"witness recorded: {fmt_args(w.args)} -> {describe_obs(w.expect)}")
         print(f"  ledger: {p}")
     return EXIT_SAME
+
+
+def _witness_args(t, args) -> tuple:
+    """Build the probe args for a witness from --input / --init / --calls according to the target kind."""
+    def lst(text, what):
+        v = parse_literal(text)
+        if not isinstance(v, (list, tuple)):
+            raise CliError(f"{what} must be a JSON/Python list, e.g. '[1, 2]'")
+        return list(v)
+
+    if t.kind == "function":
+        if args.input is None:
+            raise CliError("--input is required for a function target")
+        raw = lst(args.input, "--input")
+        if len(raw) != len(t.spec.params):
+            raise CliError(f"--input has {len(raw)} argument(s) but {t.name} takes {len(t.spec.params)}")
+        return tuple(raw)
+    init = lst(args.init, "--init") if args.init is not None else []
+    if len(init) != len(t.spec.init_params):
+        raise CliError(f"--init has {len(init)} argument(s) but {t.spec.name}() takes {len(t.spec.init_params)}")
+    if t.kind == "method":
+        if args.input is None:
+            raise CliError("--input (the method's arguments) is required for a method target")
+        margs = lst(args.input, "--input")
+        if len(margs) != len(t.spec.methods[t.method].params):
+            raise CliError(f"--input has {len(margs)} argument(s) but {t.name} takes {len(t.spec.methods[t.method].params)}")
+        return (tuple(init), ((t.method, tuple(margs)),))
+    if args.calls is None:
+        raise CliError("--calls is required for a class target, e.g. '[[\"push\", [1]], [\"pop\", []]]'")
+    calls = []
+    for c in lst(args.calls, "--calls"):
+        if not (isinstance(c, (list, tuple)) and len(c) == 2 and isinstance(c[0], str) and isinstance(c[1], (list, tuple))):
+            raise CliError("--calls entries must look like [\"method\", [args]]")
+        if c[0] not in t.spec.methods:
+            raise CliError(f"{t.spec.name}.{c[0]} is not a supported method")
+        calls.append((c[0], tuple(c[1])))
+    return (tuple(init), tuple(calls))
 
 
 def cmd_lookup(args) -> int:
@@ -208,7 +245,7 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="per-probe timeout in seconds")
 
     h = sub.add_parser("hash", help="compute a function's behavioral address")
-    h.add_argument("target", help="path.py:function")
+    h.add_argument("target", help="path.py:function | path.py:Class | path.py:Class.method")
     h.add_argument("--push", action="store_true", help="store the implementation in the local registry")
     h.add_argument("--count", type=int, default=48, help="number of generated type probes")
     common(h)
@@ -262,7 +299,9 @@ def build_parser() -> argparse.ArgumentParser:
     ws = w.add_subparsers(dest="witness_cmd", required=True)
     wa = ws.add_parser("add")
     wa.add_argument("target")
-    wa.add_argument("--input", required=True, help="argument list, e.g. '[1, 2]'")
+    wa.add_argument("--input", help="argument list, e.g. '[1, 2]' (function or method arguments)")
+    wa.add_argument("--init", help="constructor argument list for Class / Class.method targets, e.g. '[3]'")
+    wa.add_argument("--calls", help="call sequence for a Class target, e.g. '[[\"push\", [1]], [\"pop\", []]]'")
     wa.add_argument("--expect", help="expected return value as a literal")
     wa.add_argument("--raises", help="expected exception class name")
     wa.add_argument("--run", action="store_true", help="record whatever the current implementation does")

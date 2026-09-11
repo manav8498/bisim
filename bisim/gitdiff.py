@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 
-from .extract import extract_functions
+from .extract import extract_classes, extract_functions
 
 
 class NotARepo(Exception):
@@ -83,7 +83,18 @@ def function_pairs(root, base: str = "HEAD") -> list[Pair]:
 
 
 def _safe_extract(path: str):
+    """Target names in a file: functions, classes, and Class.method for every supported method."""
     try:
-        return extract_functions(path)
+        names = [s.name for s in extract_functions(path)]
+        for c in extract_classes(path):
+            if c.public_methods():
+                names.append(c.name)
+            names += [f"{c.name}.{m}" for m in c.methods]
+        return [_N(n) for n in names]
     except SyntaxError:
         return []
+
+
+class _N:
+    def __init__(self, name):
+        self.name = name

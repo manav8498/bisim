@@ -1,6 +1,6 @@
 [project]
 name = "bisim"
-version = "0.2.0"
+version = "0.3.0"
 description = "Behavior-addressed code: address functions by what they do, witnessed by humans."
 readme = "README.md"
 requires-python = ">=3.11"
