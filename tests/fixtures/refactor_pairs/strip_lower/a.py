@@ -1,0 +1,2 @@
+def f(s: str) -> str:
+    return s.strip().lower()
