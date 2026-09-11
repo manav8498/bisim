@@ -177,6 +177,12 @@ def cmd_check(args) -> int:  # implemented in Task 9
     return run_check(args)
 
 
+def cmd_merge_check(args) -> int:
+    from .merge import run_merge_check
+
+    return run_merge_check(args)
+
+
 def cmd_mint(args) -> int:  # implemented in Task 11
     from .mintcli import run_mint
 
@@ -215,6 +221,14 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--no-grow", action="store_true", help="do not widen probe sets until coverage plateaus")
     common(c)
     c.set_defaults(func=cmd_check)
+
+    mc = sub.add_parser("merge-check", help="three-way behavioral merge: do two branches change the same function's behavior on the same inputs?")
+    mc.add_argument("base", help="merge base ref")
+    mc.add_argument("--ours", default="HEAD")
+    mc.add_argument("--theirs", required=True)
+    mc.add_argument("--count", type=int, default=48, help="number of generated probes per function")
+    common(mc)
+    mc.set_defaults(func=cmd_merge_check)
 
     m = sub.add_parser("mint", help="elicit intent: generate candidates, ask about the inputs where they disagree")
     m.add_argument("--intent", required=True)

@@ -85,6 +85,7 @@ pip install -e ".[llm]"     # + Anthropic SDK, for `mint` via API key
 bisim hash    file.py:fn [--push]          address + manifest; --push stores it in the local registry
 bisim diff    old.py:fn new.py:fn          behavioral diff; exit 0 same · 1 changed · 2 witnessed intent violated
 bisim check   [--base HEAD]                every changed function in the git worktree vs base — the CI gate
+bisim merge-check <base> --ours A --theirs B   three-way behavioral merge: conflicts git cannot see
 bisim mint    --intent … --sig … --out …   discover intent by asking only where candidates disagree
 bisim witness add file.py:fn --input '[…]' (--expect V | --raises E | --run) [--note …]
 bisim witness list file.py:fn
@@ -95,6 +96,29 @@ Exit codes: `0` same · `1` changed on generated probes only · `2` changed on a
 signature changed · `3` refused (nondeterministic / unsupported, with the reason) · `4` error.
 
 Run `examples/demo.sh` for the six-step walkthrough.
+
+## Behavioral merge conflicts
+
+Git merges text. `bisim merge-check` asks whether two branches changed the same function's behavior
+on the same inputs — and differently. `examples/merge_demo.sh`: Alice changes a fee helper at the top
+of a file; Bob changes the caller at the bottom. Different hunks, so git merges cleanly:
+
+```
+$ bisim merge-check main --ours alice --theirs bob
+fees.py:_fee   ours-only            behavior changed on 48 inputs
+fees.py:total  CONFLICT             both changed 44 shared inputs; 44 disagree
+    (0.0,): base=1.0  ours=3.0  theirs=2.0
+    (1.0,): base=2.0  ours=4.0  theirs=3.0
+$ git merge bob
+Merge made by the 'ort' strategy.
+$ bisim check --base main
+fees.py:total  changed   44/48 inputs
+    (0.0,): 1.0 -> 6.0          # neither author wrote this
+```
+
+Statuses: `conflict` · `independent` (both changed, on disjoint inputs) · `convergent` (both made
+the same change) · `ours-only` / `theirs-only` · `delete-modify` · `added-both-same` /
+`added-both-conflict` · `signature`. Exit 2 on any conflict.
 
 ## How the address is computed
 
