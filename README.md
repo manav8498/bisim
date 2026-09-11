@@ -286,7 +286,7 @@ regenerating them.
 
 ```bash
 uv venv && uv pip install -e ".[dev]"
-.venv/bin/pytest -q           # 160 tests, ~20 s, offline
+.venv/bin/pytest -q           # 166 tests, ~25 s, offline
 python -m bisim.evalbench     # reproduce the evaluation from cached generations
 bash examples/demo.sh
 ```
