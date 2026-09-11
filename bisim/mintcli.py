@@ -12,17 +12,17 @@ from .sandbox import SandboxError
 
 
 def run_mint(args) -> int:
-    from .llm import AnthropicClient
+    from .llm import default_client
 
     root = find_root(args.root) if args.root else find_root(os.path.dirname(os.path.abspath(args.out)))
     spec = parse_signature(args.sig)
     try:
-        client = AnthropicClient(model=args.model)
+        client = default_client(model=args.model, prefer=args.client)
     except RuntimeError as e:
         print(f"error: {e}", file=sys.stderr)
         return 4
     print(f"minting {spec.name}{spec.signature_str()}  intent: {args.intent}")
-    print(f"  asking {args.model or 'claude-opus-5'} for {args.k} deliberately different implementations…")
+    print(f"  asking {args.model or 'claude-opus-5'} via {type(client).__name__} for {args.k} deliberately different implementations…")
     try:
         r = mint(args.intent, spec, client, ConsoleAnswerer(), root, args.out, k=args.k,
                  max_questions=args.max_questions, timeout=args.timeout, tests_dir=args.tests_dir)

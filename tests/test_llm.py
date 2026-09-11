@@ -88,3 +88,31 @@ def test_anthropic_client_refusal_is_an_error():
     sdk = _SDK(_Msg("", stop_reason="refusal"))
     with pytest.raises(RuntimeError, match="refus"):
         AnthropicClient(client=sdk).generate("x", parse_signature("def f(x: int) -> int"), 3, [])
+
+
+def test_claude_code_client_shells_out(tmp_path):
+    from bisim.llm import ClaudeCodeClient
+
+    calls = {}
+
+    class P:
+        returncode, stdout, stderr = 0, '{"candidates": ["def f(x: int) -> int:\\n    return x"], "suggested_args": [[1]]}', ""
+
+    def runner(cmd, **kw):
+        calls["cmd"] = cmd
+        return P()
+
+    c = ClaudeCodeClient(runner=runner, binary="claude-fake")
+    g = c.generate("id", parse_signature("def f(x: int) -> int"), 2, [])
+    assert g.candidates and g.suggested_args == [[1]]
+    assert calls["cmd"][1:3] == ["-p", "--bare"] and "--tools" in calls["cmd"] and "claude-opus-5" in calls["cmd"]
+
+
+def test_claude_code_client_failure():
+    from bisim.llm import ClaudeCodeClient
+
+    class P:
+        returncode, stdout, stderr = 1, "", "boom"
+
+    with pytest.raises(RuntimeError, match="boom"):
+        ClaudeCodeClient(runner=lambda *a, **k: P()).generate("x", parse_signature("def f(x: int) -> int"), 2, [])
