@@ -35,26 +35,39 @@ class Nondeterministic(SandboxError):
     probe: Probe
     first: dict
     second: dict
+    reason: str = "nondeterministic"
 
     def __str__(self) -> str:
-        return f"nondeterministic on args={self.probe.args!r}: {self.first} vs {self.second}"
+        return f"{self.reason} on args={self.probe.args!r}: {self.first} vs {self.second}"
+
+
+def isolation_mode() -> str:
+    """``module`` (default): re-import the target and project-local modules before every probe.
+    ``process``: one child process per probe. ``none``: import once (state can leak; only for tests)."""
+    mode = os.environ.get("BISIM_ISOLATION", "module").strip().lower()
+    return mode if mode in ("module", "process", "none") else "module"
+
+
+def runner_wrapper() -> list[str]:
+    """Optional command prefix for the child process, e.g. ``bwrap --unshare-net ...`` or a
+    container runner, set with BISIM_RUNNER_WRAPPER. This is how you get an OS-level sandbox."""
+    import shlex
+
+    raw = os.environ.get("BISIM_RUNNER_WRAPPER", "").strip()
+    return shlex.split(raw) if raw else []
 
 
 def _spawn(job: dict, total_timeout: float) -> list[dict]:
     env = dict(os.environ, PYTHONHASHSEED="0")
     pkg_parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env["PYTHONPATH"] = pkg_parent + os.pathsep + env.get("PYTHONPATH", "")
+    cmd = runner_wrapper() + [sys.executable, "-c", "import bisim._runner as r; r.main()"]
     try:
-        proc = subprocess.run(
-            [sys.executable, "-c", "import bisim._runner as r; r.main()"],
-            input=json.dumps(job),
-            capture_output=True,
-            text=True,
-            env=env,
-            timeout=total_timeout,
-        )
+        proc = subprocess.run(cmd, input=json.dumps(job), capture_output=True, text=True, env=env, timeout=total_timeout)
     except subprocess.TimeoutExpired:
         raise SandboxError("sandbox exceeded its total time budget")
+    except FileNotFoundError as e:
+        raise SandboxError(f"cannot start the runner: {e}")
     lines = []
     for raw in proc.stdout.splitlines():
         if raw.strip():
@@ -73,7 +86,8 @@ def _spawn(job: dict, total_timeout: float) -> list[dict]:
 
 def _run(module_path: str, func_name: str, probes: list[Probe], timeout: float, coverage: bool, class_name: str | None = None,
          properties: list[str] | None = None) -> tuple[list[dict], list[set[int]]]:
-    job = {
+    mode = isolation_mode()
+    base = {
         "op": "run",
         "module": os.path.abspath(module_path),
         "func": func_name,
@@ -81,9 +95,14 @@ def _run(module_path: str, func_name: str, probes: list[Probe], timeout: float, 
         "properties": list(properties or []),
         "timeout": timeout,
         "coverage": coverage,
-        "probes": [canon(list(p.args)) for p in probes],
+        "isolation": mode,
     }
-    lines = _spawn(job, total_timeout=len(probes) * timeout + 15)
+    if mode == "process":
+        lines = []
+        for p in probes:
+            lines += _spawn({**base, "probes": [canon(list(p.args))]}, total_timeout=timeout + 15)
+    else:
+        lines = _spawn({**base, "probes": [canon(list(p.args)) for p in probes]}, total_timeout=len(probes) * timeout + 15)
     if len(lines) != len(probes):
         raise SandboxError(f"expected {len(probes)} observations, got {len(lines)}")
     cov = []
@@ -108,20 +127,24 @@ def observe_cov(module_path: str, func_name: str, probes: list[Probe], timeout: 
     """Two independent processes; any disagreement means the target is nondeterministic.
     Coverage comes from the first run."""
     a, cov = _run(module_path, func_name, probes, timeout, True, class_name, properties)
-    b, _ = _run(module_path, func_name, probes, timeout, False, class_name, properties)
+    b = _run(module_path, func_name, probes[::-1], timeout, False, class_name, properties)[0][::-1]
+    _compare_runs(probes, a, b)
+    return a, cov
+
+
+def _compare_runs(probes, a, b):
+    """The second run used the reversed order. A mismatch means the result depends on either
+    randomness or on state shared between probes; both make the target unaddressable."""
     for p, x, y in zip(probes, a, b):
         if x != y:
-            raise Nondeterministic(p, x, y)
-    return a, cov
+            raise Nondeterministic(p, x, y, "nondeterministic or order-dependent (shared state)")
 
 
 def observe(module_path: str, func_name: str, probes: list[Probe], timeout: float = DEFAULT_TIMEOUT, class_name: str | None = None, properties=None) -> list[dict]:
     """Two independent processes; any disagreement means the target is nondeterministic."""
     a = run_probes(module_path, func_name, probes, timeout, class_name, properties)
-    b = run_probes(module_path, func_name, probes, timeout, class_name, properties)
-    for p, x, y in zip(probes, a, b):
-        if x != y:
-            raise Nondeterministic(p, x, y)
+    b = run_probes(module_path, func_name, probes[::-1], timeout, class_name, properties)[::-1]
+    _compare_runs(probes, a, b)
     return a
 
 

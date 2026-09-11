@@ -214,43 +214,78 @@ def _run_sequence(cls, args, canon, properties=()):
     return {"ok": True, "steps": steps, "state": canon(_state(obj))}
 
 
+def _project_modules(project_dir: str, baseline: set) -> list[str]:
+    """Modules imported since ``baseline`` whose source lives under the project directory."""
+    out = []
+    for name, m in list(sys.modules.items()):
+        if name in baseline or m is None:
+            continue
+        f = getattr(m, "__file__", None) or ""
+        if f and os.path.realpath(f).startswith(project_dir + os.sep):
+            out.append(name)
+    return out
+
+
 def main():
     from bisim.canon import canon, uncanon
 
     job = json.loads(sys.stdin.read())
     out = sys.stdout
     sys.stdout = io.StringIO()  # module-level prints must not corrupt the protocol
-    try:
-        mod = _load(job["module"])
-    except BaseException as e:  # noqa: BLE001 - report anything, including SystemExit at import
-        out.write(json.dumps({"fatal": f"import failed: {type(e).__name__}: {e}"}) + "\n")
-        out.flush()
-        return
+    isolation = job.get("isolation", "module")
+    project_dir = os.path.realpath(os.path.dirname(os.path.abspath(job["module"])))
+    baseline = set(sys.modules)
+
     if job.get("op") == "introspect":
+        try:
+            mod = _load(job["module"])
+        except BaseException as e:  # noqa: BLE001
+            out.write(json.dumps({"fatal": f"import failed: {type(e).__name__}: {e}"}) + "\n")
+            out.flush()
+            return
         out.write(json.dumps({"introspect": _introspect(mod, job["names"])}) + "\n")
         out.flush()
         return
-    cls = None
-    if job.get("class"):
-        cls = getattr(mod, job["class"], None)
-        if not isinstance(cls, type):
-            out.write(json.dumps({"fatal": f"class {job['class']} not found in {job['module']}"}) + "\n")
-            out.flush()
-            return
-        fn = None
-    else:
-        fn = getattr(mod, job["func"], None)
-        if not callable(fn):
-            out.write(json.dumps({"fatal": f"function {job['func']} not found in {job['module']}"}) + "\n")
-            out.flush()
-            return
 
+    # Blockers and recorders go in BEFORE the target is imported, so import-time effects are
+    # observed and blocked like any other effect.
     _install_effect_recorders()
     _limit_memory()
     signal.signal(signal.SIGALRM, _on_alarm)
 
+    def fresh_target():
+        """Import the target (and re-import project-local modules) so every probe starts from
+        the same module state. Third-party and stdlib modules stay loaded."""
+        if isolation != "none":
+            for name in _project_modules(project_dir, baseline):
+                del sys.modules[name]
+        mod = _load(job["module"])
+        if job.get("class"):
+            cls = getattr(mod, job["class"], None)
+            if not isinstance(cls, type):
+                raise LookupError(f"class {job['class']} not found in {job['module']}")
+            return mod, None, cls
+        fn = getattr(mod, job["func"], None)
+        if not callable(fn):
+            raise LookupError(f"function {job['func']} not found in {job['module']}")
+        return mod, fn, None
+
+    first_cwd = tempfile.mkdtemp(prefix="bisim-")
+    os.chdir(first_cwd)
+    EFFECTS.reset(first_cwd)
+    try:
+        mod, fn, cls = fresh_target()
+    except LookupError as e:
+        out.write(json.dumps({"fatal": str(e)}) + "\n")
+        out.flush()
+        return
+    except BaseException as e:  # noqa: BLE001 - report anything, including SystemExit at import
+        out.write(json.dumps({"fatal": f"import failed: {type(e).__name__}: {e}"}) + "\n")
+        out.flush()
+        return
+
     def resolver(qualname: str):
-        return getattr(mod, qualname.split(".")[-1])
+        return getattr(mod, qualname.split(".")[-1])  # ``mod`` is rebound per probe
 
     want_cov = bool(job.get("coverage"))
     target_file = os.path.abspath(job["module"])
@@ -273,13 +308,23 @@ def main():
             return trace
         return trace
 
-    for p in job["probes"]:
+    for i, p in enumerate(job["probes"]):
         buf = io.StringIO()
         hits: set = set()
         arcs: set = set()
-        cwd = tempfile.mkdtemp(prefix="bisim-")  # fresh scratch directory per probe: no state leaks between probes
-        os.chdir(cwd)
-        EFFECTS.reset(cwd)
+        if i == 0:
+            cwd = first_cwd  # the module was imported here; its import-time effects belong to this probe
+        else:
+            cwd = tempfile.mkdtemp(prefix="bisim-")  # fresh scratch directory per probe
+            os.chdir(cwd)
+            EFFECTS.reset(cwd)
+            if isolation != "none":
+                try:
+                    mod, fn, cls = fresh_target()
+                except BaseException as e:  # noqa: BLE001
+                    out.write(json.dumps({"ok": False, "exc": type(e).__name__, "at": "import"}) + "\n")
+                    out.flush()
+                    continue
         try:
             args = uncanon(p, resolver)
             signal.setitimer(signal.ITIMER_REAL, job["timeout"])
