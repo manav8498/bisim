@@ -66,7 +66,7 @@ def _spawn(job: dict, total_timeout: float) -> list[dict]:
         raise SandboxError(lines[0]["fatal"])
     expected = len(job.get("probes", [])) if job.get("op") == "run" else 1
     if len(lines) < expected:
-        why = "killed — memory or total time budget exceeded" if proc.returncode in (-9, 137) else f"rc={proc.returncode}"
+        why = "killed: memory or total time budget exceeded" if proc.returncode in (-9, 137) else f"rc={proc.returncode}"
         raise SandboxError(f"sandbox crashed after {len(lines)} observation(s) ({why}): {proc.stderr[-2000:]}".rstrip(": "))
     return lines
 

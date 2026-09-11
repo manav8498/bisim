@@ -18,9 +18,9 @@ the request. Use JSON values matching the parameter types. Propose at most the n
 requested. Prefer the simplest inputs that reach each target line."""
 
 _SHAPES = {
-    "function": '[<arg1>, <arg2>, ...] — the full positional argument list for one call',
-    "method": '{"init": [<constructor args>], "args": [<method args>]} — one call on a fresh instance',
-    "class": '{"init": [<constructor args>], "calls": [["<method>", [<args>]], ...]} — a call sequence on a fresh instance',
+    "function": '[<arg1>, <arg2>, ...]: the full positional argument list for one call',
+    "method": '{"init": [<constructor args>], "args": [<method args>]}: one call on a fresh instance',
+    "class": '{"init": [<constructor args>], "calls": [["<method>", [<args>]], ...]}: a call sequence on a fresh instance',
 }
 
 

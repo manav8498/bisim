@@ -2,7 +2,7 @@
 
 For each task: ask the client for candidates (cached to disk), run ``mint`` against a simulated user
 that answers from a hidden reference implementation (the TiCoder evaluation protocol), and record
-whether the chosen implementation is behaviorally equivalent to the reference on the final probe set —
+whether the chosen implementation is behaviorally equivalent to the reference on the final probe set,
 versus the naive baseline of taking the model's first candidate.
 
     python -m bisim.evalbench --tasks examples/bench/tasks.json --cache examples/bench/cache [--client claude-code]
@@ -111,7 +111,7 @@ def summarize(results: list[TaskResult]) -> str:
     lines = ["| task | candidates | behavior classes | questions | first-candidate correct | mint correct |", "|---|---|---|---|---|---|"]
     for r in results:
         if r.error:
-            lines.append(f"| {r.name} | — | — | — | — | error: {r.error[:60]} |")
+            lines.append(f"| {r.name} | - | - | - | - | error: {r.error[:60]} |")
         else:
             lines.append(f"| {r.name} | {r.candidates} | {r.classes} | {r.questions} | {'✓' if r.pick1_correct else '✗'} | {'✓' if r.mint_correct else '✗'} |")
     if ok:

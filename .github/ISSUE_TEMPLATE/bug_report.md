@@ -1,22 +1,20 @@
 ---
 name: Bug report
-about: Something is wrong — a refused target that should work, a wrong verdict, a crash
+about: A wrong verdict, a target that should work but is refused, or a crash
 labels: bug
 ---
 
-**What did you run?** (the exact `bisim …` command)
+**Command you ran**
 
-**What happened?** (paste the output; `--json` output is best)
+**What happened** (paste the output, `--json` output is best)
 
-**What did you expect?**
+**What you expected**
 
-**Minimal target** (a small `.py` that reproduces it):
+**A small file that reproduces it**
 
 ```python
 ```
 
-**Environment:** `bisim --version`, `python --version`, OS.
+**Versions**: output of `bisim --version` and `python --version`, and your OS.
 
-If the bug is a *wrong verdict* (SAME when behavior differs, or CHANGED on a pure refactor), please
-include both versions of the target — that is exactly the kind of case the negative-control suite
-should grow with.
+If bisim gave a wrong verdict (SAME when the behavior differs, or CHANGED for a rewrite that keeps behavior), please include both versions of the code. Each of these becomes a test fixture.

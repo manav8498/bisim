@@ -57,7 +57,7 @@ class Manifest:
     probes: list[ProbeRecord]
     root: str
     address: str
-    coverage: dict | None = None  # diagnostic only — never part of the address
+    coverage: dict | None = None  # reported only, never part of the address
 
     def to_dict(self) -> dict:
         return asdict(self)

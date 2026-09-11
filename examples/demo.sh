@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bisim demo — behavior-addressed code in six steps. Steps 1–3 and 5–6 are offline.
+# bisim demo in six steps. Steps 1 to 3 and 5 to 6 run offline.
 set -u
 cd "$(dirname "$0")/.."
 B=".venv/bin/bisim"; [ -x "$B" ] || B="bisim"
@@ -23,7 +23,7 @@ $B diff examples/median_v1.py:median examples/median_v3.py:median --root "$ROOT"
 
 step "6. mint: discover intent from scratch by asking only where implementations disagree"
 if [ -n "${ANTHROPIC_API_KEY:-}" ] || command -v claude >/dev/null 2>&1; then
-  echo "(interactive — answer the questions; Ctrl-D stops)"
+  echo "(interactive: answer the questions; Ctrl-D stops)"
   $B mint --intent "median of a list of numbers" --sig "def median(xs: list[float]) -> float" \
      --out "$ROOT/median.py" --tests-dir "$ROOT/tests" --root "$ROOT"
 else

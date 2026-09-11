@@ -131,7 +131,7 @@ ZERO_LOWER = LOWER.replace("raise ValueError('empty')", "return 0.0")
 
 def test_confirmation_recovers_a_pruned_disagreement(tmp_path):
     """LOWER and ZERO differ on [] and on even-length lists. The split loop asks about [] first,
-    prunes ZERO, and is left with LOWER — whose even-length behavior the user never approved.
+    prunes ZERO, and is left with LOWER, whose even-length behavior the user never approved.
     A confirmation question on a once-contested even-length input catches it; regeneration
     with the witnesses then yields MEAN."""
     from bisim.mint import OracleAnswerer

@@ -1,7 +1,7 @@
 """``bisim merge-check``: three-way *behavioral* merge analysis.
 
 Git merges text. This asks a different question: given a base and two branches, did both branches
-change the same function's behavior on the same inputs — and differently? That is a conflict even if
+change the same function's behavior on the same inputs, and differently? That is a conflict even if
 the text merges cleanly. Disjoint behavioral changes are reported as independent; identical changes as
 convergent.
 """

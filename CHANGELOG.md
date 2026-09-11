@@ -1,61 +1,45 @@
 # Changelog
 
-## 1.0.0 — 2026-09-11
+## 1.0.1
 
-- Branch (decision) coverage per address alongside line coverage; `diff`/`check` growth and `reach`
-  consider untaken branches.
-- Properties, `cached_property`, `staticmethod`, `classmethod`, and otherwise-decorated methods are
-  probed; arbitrary objects canonicalize structurally by public attributes (never by memory address).
-- Shared registry: `bisim serve` (stdlib HTTP), `RemoteStore` client, `.bisim/config.json` /
-  `$BISIM_REGISTRY` / `--registry`, `hash --push` to both stores, `lookup` falls back to remote,
-  `lookup --sig` lists implementations of an interface, `mint` pulls witnessed implementations of the
-  same interface into its candidate pool.
-- `bisim init`, `bisim install-hook`; `count`/`timeout` defaults from config.
-- Packaging: LICENSE (MIT), CONTRIBUTING, full metadata, wheel/sdist build; test suite passes on
-  Python 3.11–3.14; cross-version address determinism 59/61 (the 2 differences are Python 3.12's
-  compensated `sum()`).
+- Documentation rewritten in plain language.
+- Internal design notes removed from the repository.
+- Output messages no longer use em dashes.
+- No changes to how addresses are computed. Addresses from 1.0.0 are unchanged.
 
-## 0.5.0 — 2026-09-11
+## 1.0.0
 
-- `mint` for classes: `--sig`/`--sig-file` accept a class stub; candidates are whole classes probed
-  by call sequences; suggested inputs are `{"init", "calls"}`; witnesses become sequence tests.
-- `reach` for `Class` and `Class.method` targets.
-- Observable state is public attributes only (dataclass fields, or names not starting with `_`);
-  call sequences continue after an exception.
+- Branch coverage reported next to line coverage. `diff`, `check` and `reach` treat an untaken branch like an unreached line.
+- Properties, `cached_property`, static methods, class methods and decorated methods are probed. Objects are hashed by their public attributes, never by memory address.
+- Shared registry: `bisim serve`, a client, `.bisim/config.json` and `BISIM_REGISTRY`, `hash --push` to both registries, `lookup` falls back to the shared registry, `lookup --sig` lists implementations of a signature, `mint` reuses stored implementations.
+- `bisim init` and `bisim install-hook`. Default probe count and timeout can be set in `.bisim/config.json`.
+- Packaging: license file, contributing guide, wheel and sdist. Tests pass on Python 3.11 to 3.14.
 
-## 0.4.0 — 2026-09-11
+## 0.5.0
 
-- Effect ledger: `open`, files left in the scratch cwd (content-hashed), `os.environ` reads, and
-  blocked network/subprocess attempts are recorded in the observation (`effects`, only when non-empty).
-  Pure functions' addresses are unchanged.
-- Fresh scratch directory per probe (no state leaks between probes).
-- Clearer message when the sandbox child is killed by the time/memory budget.
+- `mint` for classes: `--sig` and `--sig-file` accept a class stub. Witnesses become sequence tests.
+- `reach` for classes and methods.
+- Object state is limited to public attributes. Call sequences continue after an exception.
 
-## 0.3.0 — 2026-09-11
+## 0.4.0
 
-- Targets: `path.py:Class.method` (one call on a fresh instance) and `path.py:Class` (seeded call
-  sequences over public methods, length 1–4). Instances built from typed `__init__` or dataclass
-  fields. Observations include the instance state after the call(s).
-- `witness add --init/--calls` for method and class targets; `check` and `merge-check` pair
-  `Class` and `Class.method` targets.
-- Negative-control suite extended with 3 class refactor pairs and 3 class mutants (incl. a mutant
-  that only differs in state).
-- Internal: `Target` adapter; `hash_target`/`diff_targets` generalize `hash_function`/`diff_functions`.
+- Effects recorded as part of the result: files opened, files written, environment variables read, blocked network and subprocess attempts.
+- A fresh scratch directory for every input.
 
-## 0.2.0 — 2026-09-11
+## 0.3.0
 
-- `hash` reports line coverage of the probe set and names unreached lines; `diff`/`check` widen the
-  generated probe set (48 → 96 → … → 480) until every line has executed or coverage plateaus.
-- `reach`: model-proposed, sandbox-verified inputs for unreached lines, stored as suggested probes.
-- `merge-check`: three-way behavioral merge analysis (conflict / independent / convergent / …).
-- `mint`: confirmation phase on once-contested inputs (kind-aware, one per distinct disagreement),
-  up to two regeneration rounds, `--confirm N`; Claude Code (`claude -p`) client fallback; `--client`.
-- `python -m bisim.evalbench`: reproducible evaluation with cached generations (dev 10/10, held-out 4/5).
-- Composite GitHub Action (`action.yml`) and CI matrix.
-- Witness ledger: readable layout, `display` strings, rejected alternatives recorded in notes.
+- Class and method targets. Instances are built from the typed constructor or dataclass fields. Class targets run call sequences of length 1 to 4.
+- `witness add --init` and `--calls`. `check` and `merge-check` handle classes.
 
-## 0.1.0 — 2026-09-11
+## 0.2.0
 
-- `hash`, `diff`, `check`, `mint`, `witness`, `lookup`; canonical serialization; seeded probe generator
-  `probegen/v1`; sandbox with 2× determinism check; Merkle `bsm1:` addresses; local registry;
-  negative-control suite (12 refactor pairs, 11 mutant pairs).
+- Line coverage per address. `diff` and `check` add inputs until coverage stops improving.
+- `reach`: model-suggested inputs for unreached lines, kept only when they verifiably reach them.
+- `merge-check`: three-way behavior comparison for branches.
+- `mint`: confirmation questions after convergence, up to two regeneration rounds, Claude Code as a fallback client.
+- `python -m bisim.evalbench` with cached model output.
+- GitHub Action and CI.
+
+## 0.1.0
+
+- `hash`, `diff`, `check`, `mint`, `witness`, `lookup`. Seeded input generator, sandbox with a two-run determinism check, Merkle addresses, local registry, and the fixture suite of refactor pairs and mutant pairs.

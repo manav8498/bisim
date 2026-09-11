@@ -1,20 +1,23 @@
 # Contributing
 
+## Setup
+
 ```bash
 uv venv && uv pip install -e ".[dev]"
-.venv/bin/pytest -q                      # everything is offline; ~35 s
-python -m bisim.evalbench                # reproduces the evaluation from cached generations
-bash examples/demo.sh; bash examples/merge_demo.sh
+.venv/bin/pytest -q                  # all tests run offline, about 35 seconds
+python -m bisim.evalbench            # reruns the mint evaluation from cached model output
+bash examples/demo.sh
+bash examples/merge_demo.sh
 ```
 
-Rules that keep the primitive honest:
+## Rules
 
-- **Never change what feeds the address silently.** The address is `sha256("bisim/1" | probegen | sig_hash | merkle_root)`.
-  Anything that changes probe generation must bump `PROBEGEN_VERSION`; anything that changes observation
-  records must be documented in the spec amendments and must keep the negative-control suite green.
-- **Refuse loudly.** No address is ever minted for a target we cannot execute deterministically.
-- **Every "changed" verdict carries an input.** Keep it that way.
-- Add a refactor pair and a mutant pair under `tests/fixtures/` for any new kind of target.
-- The evaluation harness is a measurement, not a target: add held-out tasks, do not tune on them.
+- Do not change what goes into an address without reading `docs/design.md`. Changes to input generation need a new `PROBEGEN_VERSION`. Changes to result records need a note in the changelog and must keep the fixture tests green.
+- Never produce an address for code that could not be run deterministically. Refuse and explain.
+- Every "changed" result must include an input and both results.
+- When you add support for a new kind of target, add one refactor pair and one mutant pair under `tests/fixtures/`.
+- The evaluation sets in `examples/bench/` are measurements. Add new held-out tasks if you want more data. Do not tune the question strategy against the held-out set.
 
-Design spec: `docs/superpowers/specs/2026-09-11-bisim-design.md` (with amendments). Plan: `docs/superpowers/plans/`.
+## Reporting a wrong verdict
+
+The most useful bug report is a pair of files where bisim says SAME but the behavior differs, or says CHANGED for a rewrite that preserves behavior. Include both files and the command you ran. Each of these becomes a new fixture.

@@ -1,5 +1,5 @@
 name: release
-# Publishes to PyPI via trusted publishing (OIDC) — no token stored anywhere.
+# Publishes to PyPI with trusted publishing (OIDC). No token is stored anywhere.
 # One-time setup on PyPI: Account → Publishing → add pending publisher
 #   owner: manav8498  repository: bisim  workflow: release.yml  environment: pypi
 on:

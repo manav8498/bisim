@@ -269,13 +269,13 @@ def cmd_lookup(args) -> int:
 
 
 HOOK = """#!/usr/bin/env bash
-# installed by `bisim install-hook` — behavioral gate before every commit
+# installed by `bisim install-hook`. Runs the behavior check before every commit.
 set -u
 if ! command -v bisim >/dev/null 2>&1; then echo "bisim: not on PATH, skipping behavioral check"; exit 0; fi
 bisim check --base HEAD
 code=$?
 if [ "$code" -ge 2 ]; then
-  echo "bisim: commit blocked (exit $code) — a witnessed behavior changed, or a function was refused. Use --no-verify to bypass."
+  echo "bisim: commit blocked (exit $code). A witnessed behavior changed, or a function was refused. Use --no-verify to bypass."
   exit 1
 fi
 exit 0
@@ -302,8 +302,8 @@ def cmd_init(args) -> int:
         with open(gi, "a", encoding="utf-8") as fh:
             fh.write(("" if existing.endswith("\n") or not existing else "\n") + ".bisim/store/\n")
     print(f"initialized {base}")
-    print("  .bisim/witness/   human intent ledgers — commit these")
-    print("  .bisim/store/     local registry of implementations — ignored by git (content-addressed, regenerable)")
+    print("  .bisim/witness/   approved inputs and expected results. Commit these.")
+    print("  .bisim/store/     local copies of stored implementations. Ignored by git; can be rebuilt.")
     print("  .bisim/config.json" + (f"   registry={cfg['registry']}" if cfg.get("registry") else ""))
     return EXIT_SAME
 
@@ -361,7 +361,7 @@ def cmd_mint(args) -> int:  # implemented in Task 11
 # --- parser ------------------------------------------------------------------
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="bisim", description="Behavior-addressed code: address functions by what they do.")
+    p = argparse.ArgumentParser(prog="bisim", description="Addresses for Python functions and classes based on what they do when run.")
     p.add_argument("--version", action="version", version=f"bisim {__version__}")
     sub = p.add_subparsers(dest="cmd")
 
@@ -371,14 +371,14 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="per-probe timeout in seconds")
         sp.add_argument("--registry", help="shared registry URL (default: $BISIM_REGISTRY or .bisim/config.json)")
 
-    h = sub.add_parser("hash", help="compute a function's behavioral address")
+    h = sub.add_parser("hash", help="print the address, coverage and probe counts of a function, method or class")
     h.add_argument("target", help="path.py:function | path.py:Class | path.py:Class.method")
     h.add_argument("--push", action="store_true", help="store the implementation in the local registry")
     h.add_argument("--count", type=int, default=48, help="number of generated type probes")
     common(h)
     h.set_defaults(func=cmd_hash)
 
-    d = sub.add_parser("diff", help="compare two functions by behavior")
+    d = sub.add_parser("diff", help="compare two implementations by behavior")
     d.add_argument("old", help="path.py:function")
     d.add_argument("new", help="path.py:function")
     d.add_argument("--count", type=int, default=48, help="initial number of generated probes")
@@ -386,13 +386,13 @@ def build_parser() -> argparse.ArgumentParser:
     common(d)
     d.set_defaults(func=cmd_diff)
 
-    c = sub.add_parser("check", help="behavioral gate: every changed function in the git worktree vs a base")
+    c = sub.add_parser("check", help="compare every changed function and class in the working tree with a base commit")
     c.add_argument("--base", default="HEAD")
     c.add_argument("--no-grow", action="store_true", help="do not widen probe sets until coverage plateaus")
     common(c)
     c.set_defaults(func=cmd_check)
 
-    rc = sub.add_parser("reach", help="ask a model for inputs that execute lines no probe reaches; keep the ones that verifiably do")
+    rc = sub.add_parser("reach", help="ask a model for inputs that reach lines and branches the probes missed, keep the ones that do")
     rc.add_argument("target", help="path.py:function")
     rc.add_argument("--rounds", type=int, default=2)
     rc.add_argument("--max-inputs", type=int, default=6)
@@ -401,7 +401,7 @@ def build_parser() -> argparse.ArgumentParser:
     common(rc)
     rc.set_defaults(func=cmd_reach)
 
-    mc = sub.add_parser("merge-check", help="three-way behavioral merge: do two branches change the same function's behavior on the same inputs?")
+    mc = sub.add_parser("merge-check", help="find behavior changes that two branches made to the same inputs")
     mc.add_argument("base", help="merge base ref")
     mc.add_argument("--ours", default="HEAD")
     mc.add_argument("--theirs", required=True)
@@ -409,7 +409,7 @@ def build_parser() -> argparse.ArgumentParser:
     common(mc)
     mc.set_defaults(func=cmd_merge_check)
 
-    m = sub.add_parser("mint", help="elicit intent: generate candidates, ask about the inputs where they disagree")
+    m = sub.add_parser("mint", help="write code from a description by answering questions where candidate implementations disagree")
     m.add_argument("--intent", required=True)
     m.add_argument("--sig", help='e.g. "def median(xs: list[float]) -> float", or a class stub starting with "class "')
     m.add_argument("--sig-file", help="file containing the signature or class stub")
@@ -423,7 +423,7 @@ def build_parser() -> argparse.ArgumentParser:
     common(m)
     m.set_defaults(func=cmd_mint)
 
-    w = sub.add_parser("witness", help="manage the human intent ledger")
+    w = sub.add_parser("witness", help="add or list approved inputs and expected results")
     ws = w.add_subparsers(dest="witness_cmd", required=True)
     wa = ws.add_parser("add")
     wa.add_argument("target")
@@ -441,13 +441,13 @@ def build_parser() -> argparse.ArgumentParser:
     common(wl)
     wl.set_defaults(func=cmd_witness)
 
-    lk = sub.add_parser("lookup", help="find a witnessed implementation by address, or list implementations of an interface")
+    lk = sub.add_parser("lookup", help="find stored code by address, or list stored implementations of a signature")
     lk.add_argument("address", nargs="?")
     lk.add_argument("--sig", help='interface to search for, e.g. "def f(x: int) -> int" or a class stub')
     common(lk)
     lk.set_defaults(func=cmd_lookup)
 
-    ini = sub.add_parser("init", help="create .bisim/ (ledgers, local store, config) in a project")
+    ini = sub.add_parser("init", help="create .bisim/ in a project")
     ini.add_argument("--root", help="project root (default: cwd)")
     ini.add_argument("--registry", help="shared registry URL to record in .bisim/config.json")
     ini.set_defaults(func=cmd_init)

@@ -1,6 +1,6 @@
 """A shared registry of witnessed implementations, addressed by behavior.
 
-Server: ``bisim serve --dir DIR --port N`` — stdlib ``http.server``, JSON over HTTP, no auth (put it
+Server: ``bisim serve --dir DIR --port N``: stdlib ``http.server``, JSON over HTTP, no auth (put it
 behind whatever your team already uses). Objects are stored exactly like the local store
 (``<dir>/<address>/{manifest.json,source.py,meta.json}``) plus an index by interface hash so an agent
 can ask "what implementations of this signature have been witnessed?" before generating a new one.

@@ -102,7 +102,7 @@ def hash_target(path: str, name: str, root=None, timeout: float = DEFAULT_TIMEOU
     if summary and summary["missed"]:
         warnings.append(
             f"uncovered: {len(probes)} probes never executed line(s) {', '.join(map(str, summary['missed']))} "
-            f"of {t.name} — add a witness that reaches them, run `bisim reach`, or raise --count"
+            f"of {t.name}. Add a witness that reaches them, run `bisim reach`, or raise --count"
         )
     if summary and summary.get("branches", {}).get("missed"):
         warnings.append(f"branches never taken: {', '.join(summary['branches']['missed'])}")

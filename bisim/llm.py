@@ -30,7 +30,7 @@ Respond with ONE JSON object and nothing else:
  "notes": ["<one line per ambiguity you exploited>", ...],
  "suggested_args": [[<arg1>, <arg2>, ...], ...]}
 "suggested_args" is up to 8 argument lists (JSON values matching the parameter types) on which your
-candidates disagree — the inputs most worth asking a human about."""
+candidates disagree. These are the inputs most worth asking a person about."""
 
 
 def _class_stub(spec) -> str:
@@ -49,18 +49,18 @@ def build_prompt(intent: str, spec, k: int, witnesses: list[Witness]) -> str:
     lines = [f"Intent: {intent}"]
     if is_class_spec(spec):
         lines += [
-            "Class to implement — keep EXACTLY this name, constructor signature, and these public method signatures "
+            "Class to implement. Keep EXACTLY this name, constructor signature, and these public method signatures "
             "(you may add private helpers and attributes):",
             "```python", _class_stub(spec), "```",
             f"Produce {k} candidate classes. Each candidate is the complete class source.",
-            'For "suggested_args", each entry is {"init": [<constructor args>], "calls": [["<method>", [<args>]], ...]} — '
+            'For "suggested_args", each entry is {"init": [<constructor args>], "calls": [["<method>", [<args>]], ...]}: '
             "a call sequence on a fresh instance on which your candidates disagree (return values, exceptions, or resulting state).",
         ]
     else:
         lines += [f"Signature: def {spec.name}{spec.signature_str()}", f"Produce {k} candidates."]
     if witnesses:
         lines.append("")
-        lines.append("Hard constraints — a human has already fixed these behaviors; every candidate MUST satisfy them:")
+        lines.append("Hard constraints. A person has already fixed these behaviors; every candidate MUST satisfy them:")
         for w in witnesses:
             note = f"   # {w.note}" if w.note else ""
             lines.append(f"  {fmt_args(w.args)} -> {describe_obs(w.expect)}{note}")

@@ -1,11 +1,11 @@
 ---
 name: Feature request
-about: A target kind, a type, an effect, or a workflow bisim should support
+about: A kind of code, a type, an effect, or a workflow bisim should support
 labels: enhancement
 ---
 
-**What can't you address today?** (a signature, a class, a pattern)
+**What can bisim not handle today?** (a signature, a class, a pattern)
 
-**What should the address / verdict look like?**
+**What should the address or the verdict look like?**
 
-**Does it change what feeds the address?** (if yes, it needs a `PROBEGEN_VERSION` bump or a spec amendment — see CONTRIBUTING.md)
+**Does it change what goes into an address?** If yes, see `docs/design.md` for the rules.

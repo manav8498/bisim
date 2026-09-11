@@ -179,7 +179,7 @@ def _introspect(mod, names):
 
 def _state(obj):
     """Observable state: dataclass fields, or public (non-underscore) attributes. Private attributes are
-    implementation detail — two classes that differ only in how they name their internals must not
+    implementation detail. Two classes that differ only in how they name their internals must not
     differ in behavior."""
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
         return obj
