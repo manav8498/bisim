@@ -84,7 +84,7 @@ While running the inputs, bisim records which lines of the target executed and w
 
 Coverage is reported alongside the address. It is not part of the hash.
 
-`diff` and `check` double the number of generated inputs (48, 96, 192, up to 480) until every line and branch has run or coverage stops improving.
+`diff` and `check` double the number of generated inputs (48, 96, 192, up to 480). They stop early once a behavioral difference is found. Otherwise they keep going while something is still unreached, or while the two versions differ in text (a rewrite with no difference found yet is exactly when more inputs are worth their cost).
 
 ## Rules for changing the code
 

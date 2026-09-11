@@ -78,6 +78,25 @@ The test suite checks this on 15 pairs of rewritten functions and classes (same 
 
 `python -m bisim.mutbench` measures this at a larger scale. See "How much the probes catch" below.
 
+## How much the probes catch
+
+`python -m bisim.mutbench` takes every function in the test fixtures and the evaluation references (40 functions), generates mutants with small source changes (swap `<` for `<=`, add 1 to a constant, negate an `if`, drop a statement, and so on), and checks each mutant against an independent oracle: 2000 inputs from a different seed stream than the standard probes. The oracle decides whether the mutant really changes behavior. Then the benchmark records whether bisim catches it.
+
+| | count |
+|---|---|
+| mutants generated | 290 |
+| runnable (the rest were refused as nondeterministic or crashed) | 287 |
+| mutants that change behavior, according to the oracle | 263 |
+| caught by the 48 standard inputs | 255 (97.0%) |
+| caught after `diff` grows the input set (up to 480) | 259 (98.5%) |
+| reported as changed although the oracle saw no difference | 0 |
+
+The four misses are all in a leap year calculation: to see them, an input needs a year divisible by 100 or by 400 together with month 2. Seeded random inputs do not find that. `reach` asks a model for such inputs and keeps the ones that work, and a witness fixes them for good.
+
+The 24 mutants the oracle could not distinguish from the original are equivalent mutants (for example, dropping a statement that has no effect). bisim reported all 24 as unchanged, which is correct.
+
+Results are in `examples/bench/mutants.json`. The corpus is small functions; results on large real-world code will be different, and the benchmark is written so you can point it at your own files with `--corpus`.
+
 ## Witnesses
 
 A witness is an input that a person has looked at and approved, together with the expected result. Witnesses are stored in `.bisim/witness/` and are meant to be committed with the code.

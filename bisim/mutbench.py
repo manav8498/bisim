@@ -123,7 +123,23 @@ def _observe_file(path: str, func: str, probes: list[Probe], timeout: float) -> 
         return None
 
 
-def run_corpus(files: list[str], oracle_n: int = 2000, per_func: int | None = None, timeout: float = 2.0, log=print) -> list[MutantResult]:
+CHUNK = 250
+
+
+def _oracle_differs(base_path, mut_path, func, orc, base_orc_chunks, timeout) -> bool | None:
+    """Run the oracle inputs in chunks and stop at the first difference. None if the mutant cannot run."""
+    for start in range(0, len(orc), CHUNK):
+        chunk = orc[start:start + CHUNK]
+        m = _observe_file(mut_path, func, chunk, timeout)
+        if m is None:
+            return None
+        base = base_orc_chunks[start // CHUNK]
+        if any(obs_hash(a) != obs_hash(b) for a, b in zip(base, m)):
+            return True
+    return False
+
+
+def run_corpus(files: list[str], oracle_n: int = 2000, per_func: int | None = None, timeout: float = 0.5, log=print) -> list[MutantResult]:
     from .core import diff_targets
 
     results: list[MutantResult] = []
@@ -141,8 +157,17 @@ def run_corpus(files: list[str], oracle_n: int = 2000, per_func: int | None = No
             std = generate_type_probes(spec, STANDARD_COUNT)
             orc = oracle_probes(spec, oracle_n)
             base_std = _observe_file(f, func, std, timeout)
-            base_orc = _observe_file(f, func, orc, timeout)
-            if base_std is None or base_orc is None:
+            if base_std is None:
+                continue
+            base_orc_chunks = []
+            ok = True
+            for start in range(0, len(orc), CHUNK):
+                b = _observe_file(f, func, orc[start:start + CHUNK], timeout)
+                if b is None:
+                    ok = False
+                    break
+                base_orc_chunks.append(b)
+            if not ok:
                 continue
             t0 = time.time()
             ms = mutants(source, func, per_func)
@@ -155,20 +180,23 @@ def run_corpus(files: list[str], oracle_n: int = 2000, per_func: int | None = No
                     if m_std is None:
                         results.append(MutantResult(f, func, desc, None, None, None))
                         continue
-                    m_orc = _observe_file(mp, func, orc, timeout)
-                    if m_orc is None:
+                    std_diff = any(obs_hash(a) != obs_hash(b) for a, b in zip(base_std, m_std))
+                    if std_diff:
+                        # the 48 standard inputs already prove the mutant differs; no oracle needed
+                        results.append(MutantResult(f, func, desc, True, True, True, STANDARD_COUNT))
+                        continue
+                    orc_diff = _oracle_differs(f, mp, func, orc, base_orc_chunks, timeout)
+                    if orc_diff is None:
                         results.append(MutantResult(f, func, desc, None, None, None))
                         continue
-                    std_diff = any(obs_hash(a) != obs_hash(b) for a, b in zip(base_std, m_std))
-                    orc_diff = any(obs_hash(a) != obs_hash(b) for a, b in zip(base_orc, m_orc)) or std_diff
-                    grown_diff, grown_n = std_diff, STANDARD_COUNT
-                    if orc_diff and not std_diff:
+                    grown_diff, grown_n = False, STANDARD_COUNT
+                    if orc_diff:
                         try:
                             dres = diff_targets(f, func, mp, func, root=d, timeout=timeout, grow=True)
                             grown_diff, grown_n = (not dres.same), dres.probe_count
                         except (SandboxError, Nondeterministic):
                             pass
-                    results.append(MutantResult(f, func, desc, orc_diff, std_diff, grown_diff, grown_n))
+                    results.append(MutantResult(f, func, desc, orc_diff, False, grown_diff, grown_n))
             log(f"{os.path.basename(f)}:{func}: {len(ms)} mutants in {time.time() - t0:.0f}s")
     return results
 
@@ -201,6 +229,7 @@ def main(argv=None) -> int:
     ap.add_argument("--oracle-inputs", type=int, default=2000)
     ap.add_argument("--per-func", type=int, default=None, help="cap mutants per function")
     ap.add_argument("--json", default=None)
+    ap.add_argument("--timeout", type=float, default=0.5, help="per-input timeout in seconds")
     args = ap.parse_args(argv)
     if args.corpus:
         files = sorted({f for g in args.corpus for f in glob.glob(g)})
@@ -215,7 +244,7 @@ def main(argv=None) -> int:
                     p = os.path.join(d, f"{t['name']}.py")
                     open(p, "w").write(t["reference"])
                     files.append(p)
-    results = run_corpus(files, args.oracle_inputs, args.per_func)
+    results = run_corpus(files, args.oracle_inputs, args.per_func, args.timeout)
     print()
     print(summarize(results))
     if args.json:

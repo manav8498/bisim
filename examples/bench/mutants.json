@@ -1,0 +1,2612 @@
+[
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/dict_default/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/exception_swap/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/exception_swap/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/exception_swap/a.py",
+  "func": "f",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/exception_swap/a.py",
+  "func": "f",
+  "mutation": "compare Lt->LtE L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/exception_swap/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/first_or_none/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/float_rounding/a.py",
+  "func": "f",
+  "mutation": "const 1->2 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/lt_to_le/a.py",
+  "func": "f",
+  "mutation": "compare Gt->GtE L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/lt_to_le/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "negate-if L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "arith Mod->FloorDiv L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "const 2->3 L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "arith Add->Sub L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "const 2->3 L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "arith FloorDiv->Div L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "const 2->3 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "arith Sub->Add L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "arith FloorDiv->Div L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "arith FloorDiv->Div L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "const 1->2 L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "const 2->3 L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/median_middle/a.py",
+  "func": "f",
+  "mutation": "const 2->3 L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/off_by_one/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": null,
+  "standard_differs": null,
+  "grown_differs": null,
+  "grown_probes": 0
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/off_by_one/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/off_by_one/a.py",
+  "func": "f",
+  "mutation": "negate-if L2",
+  "oracle_differs": null,
+  "standard_differs": null,
+  "grown_differs": null,
+  "grown_probes": 0
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/off_by_one/a.py",
+  "func": "f",
+  "mutation": "boolop Or L2",
+  "oracle_differs": null,
+  "standard_differs": null,
+  "grown_differs": null,
+  "grown_probes": 0
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/off_by_one/a.py",
+  "func": "f",
+  "mutation": "compare Lt->LtE L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/off_by_one/a.py",
+  "func": "f",
+  "mutation": "compare Gt->GtE L2",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/off_by_one/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/off_by_one/a.py",
+  "func": "f",
+  "mutation": "const 100000->100001 L2",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/mutant_pairs/off_by_one/a.py",
+  "func": "f",
+  "mutation": "const 1->2 L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/dict_get_vs_try/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/early_return/a.py",
+  "func": "f",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/early_return/a.py",
+  "func": "f",
+  "mutation": "compare Lt->LtE L2",
+  "oracle_differs": true,
+  "standard_differs": false,
+  "grown_differs": true,
+  "grown_probes": 192
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/early_return/a.py",
+  "func": "f",
+  "mutation": "negate-if L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/early_return/a.py",
+  "func": "f",
+  "mutation": "compare Gt->GtE L5",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/helper_extraction/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/helper_extraction/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/helper_extraction/a.py",
+  "func": "f",
+  "mutation": "arith Sub->Add L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/helper_extraction/a.py",
+  "func": "f",
+  "mutation": "compare GtE->Gt L3",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/helper_extraction/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L3",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/loop_to_comprehension/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/loop_to_comprehension/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/loop_to_comprehension/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/loop_to_comprehension/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/loop_to_comprehension/a.py",
+  "func": "f",
+  "mutation": "negate-if L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/loop_to_comprehension/a.py",
+  "func": "f",
+  "mutation": "compare Eq->NotEq L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/loop_to_comprehension/a.py",
+  "func": "f",
+  "mutation": "arith Mod->FloorDiv L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/loop_to_comprehension/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/loop_to_comprehension/a.py",
+  "func": "f",
+  "mutation": "arith Mult->Add L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/loop_to_comprehension/a.py",
+  "func": "f",
+  "mutation": "const 2->3 L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/max_by_len/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/max_by_len/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/max_by_len/a.py",
+  "func": "f",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/rename_locals/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/rename_locals/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/rename_locals/a.py",
+  "func": "f",
+  "mutation": "arith Mult->Add L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/rename_locals/a.py",
+  "func": "f",
+  "mutation": "arith Sub->Add L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/rename_locals/a.py",
+  "func": "f",
+  "mutation": "const 3->4 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/reorder_statements/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/reorder_statements/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/reorder_statements/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/reorder_statements/a.py",
+  "func": "f",
+  "mutation": "arith Add->Sub L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/reorder_statements/a.py",
+  "func": "f",
+  "mutation": "arith Add->Sub L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/reorder_statements/a.py",
+  "func": "f",
+  "mutation": "const 1->2 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/reorder_statements/a.py",
+  "func": "f",
+  "mutation": "const 2->3 L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/sum_recursive_bounded/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/sum_recursive_bounded/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/sum_recursive_bounded/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/sum_recursive_bounded/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "negate-if L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "compare Gt->GtE L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "compare Lt->LtE L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "const 1->2 L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/ternary_vs_if/a.py",
+  "func": "f",
+  "mutation": "const 1->2 L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "drop-stmt L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "const 0->1 L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "compare Lt->LtE L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "negate-if L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "const 1->2 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "tests/fixtures/refactor_pairs/while_to_for/a.py",
+  "func": "f",
+  "mutation": "const 1->2 L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "drop-stmt L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "drop-stmt L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "drop-stmt L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "drop-stmt L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "drop-stmt L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "negate-if L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "negate-if L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "compare Eq->NotEq L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "arith Mod->FloorDiv L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "const 1->2 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "arith Add->Sub L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "const 2->3 L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "const 2->3 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "arith FloorDiv->Div L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "arith Sub->Add L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "arith FloorDiv->Div L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "const 2->3 L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "arith FloorDiv->Div L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "const 1->2 L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "const 2->3 L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "examples/median_v1.py",
+  "func": "median",
+  "mutation": "const 2->3 L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "drop-stmt L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "drop-stmt L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "drop-stmt L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "negate-if L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "arith Mod->FloorDiv L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "const 2->3 L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "arith Add->Sub L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "const 2->3 L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "arith FloorDiv->Div L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "arith Sub->Add L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "arith FloorDiv->Div L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "const 2->3 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "arith FloorDiv->Div L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "const 1->2 L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "const 2->3 L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/median.py",
+  "func": "median",
+  "mutation": "const 2->3 L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/clamp.py",
+  "func": "clamp",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/clamp.py",
+  "func": "clamp",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/clamp.py",
+  "func": "clamp",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/clamp.py",
+  "func": "clamp",
+  "mutation": "compare Gt->GtE L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/clamp.py",
+  "func": "clamp",
+  "mutation": "compare Lt->LtE L4",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/clamp.py",
+  "func": "clamp",
+  "mutation": "compare Gt->GtE L4",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/safe_div.py",
+  "func": "safe_div",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/safe_div.py",
+  "func": "safe_div",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/safe_div.py",
+  "func": "safe_div",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/safe_div.py",
+  "func": "safe_div",
+  "mutation": "compare Eq->NotEq L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/safe_div.py",
+  "func": "safe_div",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/dedupe.py",
+  "func": "dedupe",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/dedupe.py",
+  "func": "dedupe",
+  "mutation": "drop-stmt L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/dedupe.py",
+  "func": "dedupe",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/dedupe.py",
+  "func": "dedupe",
+  "mutation": "drop-stmt L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/dedupe.py",
+  "func": "dedupe",
+  "mutation": "negate-if L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "drop-stmt L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "drop-stmt L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "negate-if L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "negate-if L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "compare Lt->LtE L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "compare LtE->Lt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "compare Eq->NotEq L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "arith Add->Sub L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "const 0->1 L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "arith Sub->Add L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/truncate.py",
+  "func": "truncate",
+  "mutation": "const 1->2 L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "drop-stmt L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "drop-stmt L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "drop-stmt L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "drop-stmt L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "drop-stmt L11",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "drop-stmt L13",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "negate-if L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "negate-if L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "negate-if L11",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "boolop Or L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "arith Sub->Add L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "compare Gt->GtE L9",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "compare Lt->LtE L11",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "arith Add->Sub L10",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "compare Gt->GtE L13",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "arith Add->Sub L13",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "const 1->2 L10",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "const 0->1 L13",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/round_half.py",
+  "func": "round_half",
+  "mutation": "const 1->2 L13",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "drop-stmt L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "drop-stmt L7",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "drop-stmt L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "drop-stmt L10",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "drop-stmt L11",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "drop-stmt L12",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "negate-if L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "negate-if L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "compare Eq->NotEq L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "arith Add->Sub L12",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "compare LtE->Lt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "compare LtE->Lt L4",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "const 1->2 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "arith Mult->Add L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "arith Add->Sub L11",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "arith Sub->Add L11",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "arith Mult->Add L12",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "const 0->1 L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "const 100->101 L4",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "arith Sub->Add L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "const 1->2 L11",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "const 1->2 L11",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "arith Sub->Add L12",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "arith Sub->Add L12",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "const 0->1 L8",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/percentile.py",
+  "func": "percentile",
+  "mutation": "const 1->2 L9",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/parse_bool.py",
+  "func": "parse_bool",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/parse_bool.py",
+  "func": "parse_bool",
+  "mutation": "drop-stmt L3",
+  "oracle_differs": true,
+  "standard_differs": false,
+  "grown_differs": true,
+  "grown_probes": 96
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/parse_bool.py",
+  "func": "parse_bool",
+  "mutation": "drop-stmt L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/parse_bool.py",
+  "func": "parse_bool",
+  "mutation": "drop-stmt L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/parse_bool.py",
+  "func": "parse_bool",
+  "mutation": "negate-if L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/parse_bool.py",
+  "func": "parse_bool",
+  "mutation": "negate-if L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/parse_bool.py",
+  "func": "parse_bool",
+  "mutation": "bool True->False L4",
+  "oracle_differs": true,
+  "standard_differs": false,
+  "grown_differs": true,
+  "grown_probes": 96
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/parse_bool.py",
+  "func": "parse_bool",
+  "mutation": "bool False->True L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/parse_bool.py",
+  "func": "parse_bool",
+  "mutation": "arith Add->Sub L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/chunk.py",
+  "func": "chunk",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/chunk.py",
+  "func": "chunk",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/chunk.py",
+  "func": "chunk",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/chunk.py",
+  "func": "chunk",
+  "mutation": "compare LtE->Lt L2",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/chunk.py",
+  "func": "chunk",
+  "mutation": "const 0->1 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/chunk.py",
+  "func": "chunk",
+  "mutation": "arith Add->Sub L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/chunk.py",
+  "func": "chunk",
+  "mutation": "const 0->1 L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/is_palindrome.py",
+  "func": "is_palindrome",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/is_palindrome.py",
+  "func": "is_palindrome",
+  "mutation": "drop-stmt L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/is_palindrome.py",
+  "func": "is_palindrome",
+  "mutation": "compare Eq->NotEq L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/is_palindrome.py",
+  "func": "is_palindrome",
+  "mutation": "const 1->2 L3",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/average.py",
+  "func": "average",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/average.py",
+  "func": "average",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/average.py",
+  "func": "average",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/capitalize_words.py",
+  "func": "capitalize_words",
+  "mutation": "arith Add->Sub L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/capitalize_words.py",
+  "func": "capitalize_words",
+  "mutation": "const 1->2 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/capitalize_words.py",
+  "func": "capitalize_words",
+  "mutation": "const 1->2 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "drop-stmt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "drop-stmt L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "drop-stmt L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "negate-if L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "negate-if L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "compare Eq->NotEq L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "compare LtE->Lt L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "compare LtE->Lt L2",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 2->3 L4",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "boolop And L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 30->31 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 31->32 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 1->2 L2",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 12->13 L2",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "compare Eq->NotEq L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "boolop Or L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 29->30 L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 28->29 L6",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "arith Mod->FloorDiv L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 0->1 L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "compare NotEq->Eq L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "compare Eq->NotEq L5",
+  "oracle_differs": true,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 480
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 4->5 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 6->7 L7",
+  "oracle_differs": true,
+  "standard_differs": false,
+  "grown_differs": true,
+  "grown_probes": 192
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 9->10 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 11->12 L7",
+  "oracle_differs": true,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 480
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 4->5 L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "arith Mod->FloorDiv L5",
+  "oracle_differs": true,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 480
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 0->1 L5",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "arith Mod->FloorDiv L5",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 0->1 L5",
+  "oracle_differs": true,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 480
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 100->101 L5",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/days_in_month.py",
+  "func": "days_in_month",
+  "mutation": "const 400->401 L5",
+  "oracle_differs": false,
+  "standard_differs": false,
+  "grown_differs": false,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/sign.py",
+  "func": "sign",
+  "mutation": "drop-stmt L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/sign.py",
+  "func": "sign",
+  "mutation": "drop-stmt L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/sign.py",
+  "func": "sign",
+  "mutation": "negate-if L5",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/sign.py",
+  "func": "sign",
+  "mutation": "compare Gt->GtE L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/sign.py",
+  "func": "sign",
+  "mutation": "const 1->2 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/sign.py",
+  "func": "sign",
+  "mutation": "const 0->1 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/sign.py",
+  "func": "sign",
+  "mutation": "compare Lt->LtE L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/sign.py",
+  "func": "sign",
+  "mutation": "const 0->1 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/sign.py",
+  "func": "sign",
+  "mutation": "const 0->1 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ },
+ {
+  "corpus_file": "/var/folders/5_/_71z_cvj56v7635_qkzgd7kc0000gn/T/bisim-refs-x8w__svh/sign.py",
+  "func": "sign",
+  "mutation": "const 1->2 L7",
+  "oracle_differs": true,
+  "standard_differs": true,
+  "grown_differs": true,
+  "grown_probes": 48
+ }
+]

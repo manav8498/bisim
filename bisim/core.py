@@ -172,6 +172,7 @@ def diff_targets(old_path: str, old_name: str, new_path: str, new_name: str, roo
     if to.kind != tn.kind or to.sig() != tn.sig():
         return DiffResult(False, True, "", "", [], 2, [f"signature changed: {to.signature_str()} -> {tn.signature_str()}"])
     resolver = tn.resolver() or to.resolver()
+    text_differs = to.source().strip() != tn.source().strip()
     rounds = 0
     prev_hit = (-1, -1)
     while True:
@@ -183,7 +184,13 @@ def diff_targets(old_path: str, old_name: str, new_path: str, new_name: str, roo
         summ_o, summ_n = coverage_summary(to.lines(), co, to.decisions()), coverage_summary(tn.lines(), cn, tn.decisions())
         hit = tuple((len(s["hit"]) + s.get("branches", {}).get("hit", 0)) if s else 0 for s in (summ_o, summ_n))
         complete = all(s is None or (not s["missed"] and not s.get("branches", {}).get("missed")) for s in (summ_o, summ_n))
-        if not grow or complete or hit == prev_hit or count >= max_count:
+        found = any(a != b for a, b in zip(oo, on))
+        if not grow or count >= max_count or found:
+            break
+        # Keep growing while something is still unreached, or while the two versions differ in text
+        # but no behavioral difference has been found yet. The second case is the refactor check,
+        # and it is exactly when more inputs are worth their cost.
+        if complete and hit == prev_hit and not text_differs:
             break
         prev_hit = hit
         count = min(count * 2, max_count)
