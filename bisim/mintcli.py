@@ -5,6 +5,7 @@ import os
 import sys
 
 from .core import find_root
+from .registry import registry_for
 from .extract import parse_class_stub, parse_signature
 from .fmt import fmt_args, describe_obs
 from .mint import ConsoleAnswerer, mint
@@ -29,7 +30,8 @@ def run_mint(args) -> int:
     print(f"  asking {args.model or 'claude-opus-5'} via {type(client).__name__} for {args.k} deliberately different implementations…")
     try:
         r = mint(args.intent, spec, client, ConsoleAnswerer(), root, args.out, k=args.k,
-                 max_questions=args.max_questions, timeout=args.timeout, tests_dir=args.tests_dir, max_confirm=args.confirm)
+                 max_questions=args.max_questions, timeout=args.timeout, tests_dir=args.tests_dir, max_confirm=args.confirm,
+                 registry=registry_for(root, getattr(args, "registry", None)))
     except SandboxError as e:
         print(f"error: {e}", file=sys.stderr)
         return 4
@@ -41,6 +43,8 @@ def run_mint(args) -> int:
         print("ambiguities the model flagged:")
         for n in r.notes:
             print(f"  - {n}")
+    if r.reused:
+        print(f"candidates reused from the shared registry: {r.reused}" + ("   (the chosen implementation is one of them)" if r.chosen_from_registry else ""))
     print(f"questions asked: {r.questions_asked}   witnesses: {len(r.ledger.witnesses)}   excluded inputs: {len(r.ledger.excluded)}")
     for w in r.ledger.witnesses:
         print(f"  {fmt_args(w.args)} -> {describe_obs(w.expect)}")

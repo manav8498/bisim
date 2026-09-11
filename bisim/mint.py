@@ -282,17 +282,40 @@ class MintResult:
     out_path: str
     test_path: str | None
     notes: list[str] = field(default_factory=list)
+    reused: int = 0  # candidates pulled from a shared registry
+    chosen_from_registry: bool = False
+
+
+def registry_candidates(registry, spec) -> list[str]:
+    """Sources of implementations with the same interface already witnessed in a shared registry."""
+    if registry is None:
+        return []
+    try:
+        hits = registry.by_sig(_sig(spec))
+    except Exception:  # noqa: BLE001 - an unreachable registry must not block minting
+        return []
+    out = []
+    for h in sorted(hits, key=lambda h: -h.get("witness_count", 0)):
+        try:
+            obj = registry.lookup(h["address"])
+        except Exception:  # noqa: BLE001
+            continue
+        if obj and obj["source"] not in out:
+            out.append(obj["source"])
+    return out
 
 
 def mint(intent: str, spec: FunctionSpec, client: CandidateClient, answerer: Answerer, root, out_path: str,
          k: int = 6, max_questions: int = 8, timeout: float = DEFAULT_TIMEOUT, tests_dir: str | None = None,
-         max_confirm: int = 3, max_regen: int = 2) -> MintResult:
+         max_confirm: int = 3, max_regen: int = 2, registry=None) -> MintResult:
     out_path = os.path.abspath(out_path)
     spec.module_path = out_path
     ledger = load_ledger(root, out_path, spec.name, spec)
     ledger.signature = spec.signature_str()
 
+    reused_sources = registry_candidates(registry, spec)
     gen = client.generate(intent, spec, k, ledger.witnesses)
+    gen.candidates = reused_sources + [c for c in gen.candidates if c not in reused_sources]
     type_probes = _type_probes(spec)
     suggested = _validate_suggested(spec, gen.suggested_args)
     for p in suggested:
@@ -401,7 +424,8 @@ def mint(intent: str, spec: FunctionSpec, client: CandidateClient, answerer: Ans
         import_stmt = f"import sys\nsys.path.insert(0, {os.path.dirname(out_path)!r})\nfrom {modname} import {spec.name}"
         with open(test_path, "w", encoding="utf-8") as fh:
             fh.write(emit_tests(ledger, spec, import_stmt))
-    return MintResult(source, manifest.address, ledger, asked, out_path, test_path, gen.notes)
+    return MintResult(source, manifest.address, ledger, asked, out_path, test_path, gen.notes,
+                      len(reused_sources), source in reused_sources)
 
 
 def pyrepr(v) -> str:

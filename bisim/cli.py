@@ -47,11 +47,19 @@ def _emit_json(obj) -> None:
 # --- commands ----------------------------------------------------------------
 
 def cmd_hash(args) -> int:
+    from .registry import registry_for
+
     path, fn = _target(args.target)
     r = hash_target(path, fn, root=_root(args), timeout=args.timeout, count=args.count)
     m = r.manifest
+    pushed_remote = False
     if args.push:
-        push(_root(args), m, r.target.source(), {"name": fn, "path": os.path.abspath(path), "witness_count": m.counts()["witness"]})
+        meta = {"name": fn, "path": os.path.abspath(path), "witness_count": m.counts()["witness"]}
+        push(_root(args), m, r.target.source(), meta)
+        reg = registry_for(_root(args), getattr(args, "registry", None))
+        if reg:
+            reg.push(m, r.target.source(), meta)
+            pushed_remote = True
     if args.json:
         _emit_json({"address": m.address, "short": m.short(), "counts": m.counts(), "warnings": r.warnings, "manifest": m.to_dict()})
     else:
@@ -68,7 +76,7 @@ def cmd_hash(args) -> int:
         for w in r.warnings:
             print(f"  warning: {w}")
         if args.push:
-            print("  pushed to registry")
+            print("  pushed to the local registry" + (" and the shared registry" if pushed_remote else ""))
     return EXIT_SAME
 
 
@@ -193,20 +201,82 @@ def _witness_args(t, args) -> tuple:
     return (tuple(init), tuple(calls))
 
 
+def _target_line(fn: dict) -> str:
+    params = ", ".join(f"{n}: {t}" for n, t in fn.get("params", []))
+    if fn.get("kind") == "class":
+        return f"{fn['name']}({params}) with {', '.join(fn.get('methods', []))}"
+    if fn.get("kind") == "method":
+        mp = ", ".join(f"{n}: {t}" for n, t in fn.get("method_params", []))
+        return f"{fn['class']}({params}).{fn['name'].split('.')[-1]}({mp}) -> {fn.get('returns')}"
+    return f"{fn['name']}({params}) -> {fn.get('returns')}"
+
+
 def cmd_lookup(args) -> int:
-    got = lookup(_root(args), args.address)
+    from .registry import registry_for
+    from .target import Target
+
+    root = _root(args)
+    reg = registry_for(root, getattr(args, "registry", None))
+    if args.sig:
+        import tempfile
+
+        from .extract import parse_class_stub, parse_signature
+        from .probes import class_sig_hash, sig_hash
+
+        spec = parse_class_stub(args.sig) if args.sig.lstrip().startswith("class ") else parse_signature(args.sig)
+        sig = class_sig_hash(spec) if hasattr(spec, "init_params") else sig_hash(spec)
+        hits = []
+        local_idx = os.path.join(root, ".bisim", "store")
+        if os.path.isdir(local_idx):
+            for d in os.listdir(local_idx):
+                got = lookup(root, "bsm1:" + d)
+                if got and got["manifest"].sig_hash == sig:
+                    hits.append({"address": got["manifest"].address, "meta": got["meta"], "where": "local",
+                                 "witness_count": got["manifest"].counts()["witness"]})
+        if reg:
+            for h in reg.by_sig(sig):
+                if not any(x["address"] == h["address"] for x in hits):
+                    hits.append({**h, "where": "remote"})
+        if args.json:
+            _emit_json({"sig_hash": sig, "implementations": hits})
+            return EXIT_SAME
+        if not hits:
+            raise NotFound(f"no witnessed implementation with interface {sig[:12]}… in the local{' or shared' if reg else ''} registry")
+        print(f"interface {sig[:12]}…  {len(hits)} implementation(s):")
+        for h in hits:
+            print(f"  {h['address'][:17]}…  {h['where']:6s}  witnesses={h.get('witness_count', 0)}  {h['meta'].get('intent') or h['meta'].get('name', '')}")
+        return EXIT_SAME
+    if not args.address:
+        raise CliError("give an address or --sig")
+    where = "local"
+    got = lookup(root, args.address)
+    if got is None and reg:
+        got = reg.lookup(args.address)
+        where = "remote"
     if got is None:
-        raise NotFound(f"address not found in registry: {args.address}")
+        raise NotFound(f"address not found in the local{' or shared' if reg else ''} registry: {args.address}")
     m = got["manifest"]
     if args.json:
-        _emit_json({"address": m.address, "meta": got["meta"], "source": got["source"], "counts": m.counts()})
+        _emit_json({"address": m.address, "where": where, "meta": got["meta"], "source": got["source"], "counts": m.counts()})
     else:
-        print(f"{m.address}")
-        print(f"  {m.function['name']}({', '.join(f'{n}: {t}' for n, t in m.function['params'])}) -> {m.function['returns']}")
+        print(f"{m.address}  ({where})")
+        print(f"  {_target_line(m.function)}")
         for k, v in sorted(got["meta"].items()):
             print(f"  {k}: {v}")
         print()
         print(got["source"].rstrip())
+    return EXIT_SAME
+
+
+def cmd_serve(args) -> int:
+    from .registry import make_server
+
+    srv = make_server(args.host, args.port, args.dir)
+    print(f"bisim registry serving {os.path.abspath(args.dir)} on http://{args.host}:{args.port}  (Ctrl-C to stop)")
+    try:
+        srv.serve_forever()
+    except KeyboardInterrupt:
+        pass
     return EXIT_SAME
 
 
@@ -245,6 +315,7 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--root", help="project root (default: nearest .bisim or .git)")
         sp.add_argument("--json", action="store_true", help="machine-readable output")
         sp.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="per-probe timeout in seconds")
+        sp.add_argument("--registry", help="shared registry URL (default: $BISIM_REGISTRY or .bisim/config.json)")
 
     h = sub.add_parser("hash", help="compute a function's behavioral address")
     h.add_argument("target", help="path.py:function | path.py:Class | path.py:Class.method")
@@ -316,10 +387,17 @@ def build_parser() -> argparse.ArgumentParser:
     common(wl)
     wl.set_defaults(func=cmd_witness)
 
-    lk = sub.add_parser("lookup", help="find a witnessed implementation by address")
-    lk.add_argument("address")
+    lk = sub.add_parser("lookup", help="find a witnessed implementation by address, or list implementations of an interface")
+    lk.add_argument("address", nargs="?")
+    lk.add_argument("--sig", help='interface to search for, e.g. "def f(x: int) -> int" or a class stub')
     common(lk)
     lk.set_defaults(func=cmd_lookup)
+
+    sv = sub.add_parser("serve", help="run a shared registry server")
+    sv.add_argument("--dir", default=".bisim/registry", help="directory to store objects in")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8765)
+    sv.set_defaults(func=cmd_serve)
     return p
 
 
@@ -337,6 +415,13 @@ def main(argv=None) -> int:
     except (CliError, NotFound, SandboxError, FileNotFoundError, ValueError, SyntaxError) as e:
         print(f"error: {e}", file=sys.stderr)
         return EXIT_ERROR
+    except Exception as e:  # noqa: BLE001
+        from .registry import RegistryError
+
+        if isinstance(e, RegistryError):
+            print(f"error: {e}", file=sys.stderr)
+            return EXIT_ERROR
+        raise
 
 
 if __name__ == "__main__":
