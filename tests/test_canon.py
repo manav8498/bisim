@@ -58,7 +58,7 @@ def test_opaque_flag():
 
     assert is_opaque(canon([Q()])) is False and canon(Q()) == ["o", "test_opaque_flag.<locals>.Q", []]
     assert is_opaque(canon([object()]))
-    assert is_opaque(canon({"k": (Q(),)}))
+    assert is_opaque(canon({"k": (object(),)}))
     assert not is_opaque(canon([1, 2]))
     assert not is_opaque(canon({"k": [1, {2}]}))
 
