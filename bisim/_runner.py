@@ -178,17 +178,21 @@ def _introspect(mod, names):
 
 
 def _state(obj):
+    """Observable state: dataclass fields, or public (non-underscore) attributes. Private attributes are
+    implementation detail — two classes that differ only in how they name their internals must not
+    differ in behavior."""
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
         return obj
     d = getattr(obj, "__dict__", None)
     if d is not None:
-        return dict(d)
+        return {k: v for k, v in d.items() if not k.startswith("_")}
     slots = getattr(type(obj), "__slots__", ())
-    return {s: getattr(obj, s) for s in slots if hasattr(obj, s)}
+    return {s: getattr(obj, s) for s in slots if hasattr(obj, s) and not s.startswith("_")}
 
 
 def _run_sequence(cls, args, canon):
-    """args = (init_args, ((method, margs), ...)). Exceptions are observations; the sequence stops at the first."""
+    """args = (init_args, ((method, margs), ...)). Exceptions are observations; later calls still run,
+    because callers do keep using an object after catching an exception."""
     init_args, calls = args
     try:
         obj = cls(*init_args)
@@ -204,7 +208,6 @@ def _run_sequence(cls, args, canon):
             raise
         except BaseException as e:  # noqa: BLE001
             steps.append({"ok": False, "exc": type(e).__name__})
-            break
     return {"ok": True, "steps": steps, "state": canon(_state(obj))}
 
 
