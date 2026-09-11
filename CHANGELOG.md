@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.0 — 2026-09-11
+
+- Branch (decision) coverage per address alongside line coverage; `diff`/`check` growth and `reach`
+  consider untaken branches.
+- Properties, `cached_property`, `staticmethod`, `classmethod`, and otherwise-decorated methods are
+  probed; arbitrary objects canonicalize structurally by public attributes (never by memory address).
+- Shared registry: `bisim serve` (stdlib HTTP), `RemoteStore` client, `.bisim/config.json` /
+  `$BISIM_REGISTRY` / `--registry`, `hash --push` to both stores, `lookup` falls back to remote,
+  `lookup --sig` lists implementations of an interface, `mint` pulls witnessed implementations of the
+  same interface into its candidate pool.
+- `bisim init`, `bisim install-hook`; `count`/`timeout` defaults from config.
+- Packaging: LICENSE (MIT), CONTRIBUTING, full metadata, wheel/sdist build; test suite passes on
+  Python 3.11–3.14; cross-version address determinism 59/61 (the 2 differences are Python 3.12's
+  compensated `sum()`).
+
 ## 0.5.0 — 2026-09-11
 
 - `mint` for classes: `--sig`/`--sig-file` accept a class stub; candidates are whole classes probed

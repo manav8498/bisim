@@ -2,11 +2,11 @@
 
 **Git addresses code by what it *says*. `bisim` addresses code by what it *does* — and a human signs the address.**
 
-A function's **behavioral address** (`bsm1:…`) is a Merkle hash of its observed behavior on a
-deterministic probe set: inputs generated from its type signature, plus inputs a human explicitly
+A function's (or class's) **behavioral address** (`bsm1:…`) is a Merkle hash of its observed behavior
+on a deterministic probe set: inputs generated from its type signature, plus inputs a human explicitly
 *witnessed*. Two implementations with the same address behave identically on every one of those
 inputs, no matter how differently they are written. When two addresses differ, `bisim` hands you the
-exact input that proves it.
+exact input that proves it. Every address carries its own coverage — and names what it could not verify.
 
 `bisim mint` closes the loop on intent: it asks a model for several *deliberately different*
 implementations of what you asked for, runs them all, and asks you only about the inputs where they
@@ -61,49 +61,86 @@ that matter.
 
 The asymmetry is deliberate and it is the right one for a gate: `bisim` never fabricates a difference,
 and every "changed" verdict comes with evidence. It can miss a difference that lives outside the probe
-set — which is what witnesses are for. An address is always relative to its probe set; the manifest
-records every probe and observation that went into it.
+set — which is why every address reports its **line and branch coverage** and names the lines and
+branches no probe reached, why `diff`/`check` widen the probe set until coverage plateaus, why `reach`
+exists, and why witnesses exist. An address is always relative to its probe set *and its runtime*; the
+manifest records both.
 
 Enforced by the test suite: 15 behavior-preserving refactors (loop→comprehension, rename, early
 return, helper extraction, statement reorder, class rewrites, …) yield **0 address changes**; 14 planted
 mutants (`<`→`<=`, off-by-one, empty-input handling, exception type, float rounding, unicode length,
 LIFO→FIFO, state mutated before raising, …) **each flip**, and the reported input reproduces the
-difference on rerun.
+difference on rerun. Across Python 3.11 → 3.14, 59 of 61 fixtures have byte-identical addresses; the
+two exceptions are float sums, where **Python 3.12 changed `sum()` to compensated summation** — a real
+behavioral difference in the runtime, which `bisim` reports rather than hides.
 
 ## Install
 
 ```bash
-pip install -e .            # stdlib only
-pip install -e ".[llm]"     # + Anthropic SDK, for `mint` via API key
+pip install bisim              # stdlib only; Python ≥ 3.11
+pip install "bisim[llm]"       # + Anthropic SDK, for `mint`/`reach` via API key
+bisim init                     # .bisim/{witness,store,config.json} in your project
+bisim install-hook             # optional: pre-commit runs `bisim check`
 ```
 
-`mint` reaches a model through `ANTHROPIC_API_KEY` (SDK) or, if none is set, a locally installed
-[Claude Code](https://claude.com/claude-code) (`claude -p`). Everything else runs offline.
+`mint` and `reach` reach a model through `ANTHROPIC_API_KEY` (SDK) or, if none is set, a locally
+installed [Claude Code](https://claude.com/claude-code) (`claude -p`). Everything else runs offline.
 
 ## Commands
 
 ```
-bisim hash    file.py:fn [--push]          address + manifest; --push stores it in the local registry
-bisim diff    old.py:fn new.py:fn          behavioral diff; exit 0 same · 1 changed · 2 witnessed intent violated
-bisim check   [--base HEAD]                every changed function in the git worktree vs base — the CI gate
-bisim merge-check <base> --ours A --theirs B   three-way behavioral merge: conflicts git cannot see
-bisim reach   file.py:fn                   model proposes inputs for lines no probe reaches; sandbox verifies; ledger keeps them
-bisim mint    --intent … --sig … --out …   discover intent by asking only where candidates disagree
-bisim witness add file.py:fn --input '[…]' (--expect V | --raises E | --run) [--note …]
-bisim witness list file.py:fn
-bisim lookup  bsm1:…                       find a witnessed implementation by behavior
+bisim hash    file.py:target [--push]           address, coverage, manifest; --push stores it (local + shared registry if configured)
+bisim diff    old.py:target new.py:target       behavioral diff; exit 0 same · 1 changed · 2 witnessed intent violated
+bisim check   [--base HEAD]                     every changed target in the git worktree vs base — the CI gate
+bisim merge-check <base> --ours A --theirs B    three-way behavioral merge: conflicts git cannot see
+bisim mint    --intent … --sig … --out …        discover intent by asking only where candidates disagree
+bisim reach   file.py:target                    model proposes inputs for unreached lines/branches; sandbox verifies; ledger keeps them
+bisim witness add file.py:target --input '[…]' [--init '[…]'] [--calls '[…]'] (--expect V | --raises E | --run) [--note …]
+bisim witness list file.py:target
+bisim lookup  bsm1:… | --sig "def f(…) -> …"   find a witnessed implementation by behavior, or list implementations of an interface
+bisim serve   [--dir …] [--port 8765]           run a shared registry
+bisim init · bisim install-hook
 ```
+
+A *target* is `f` (a function), `Class` (call sequences over its public methods), or `Class.method`.
 
 Exit codes: `0` same · `1` changed on generated probes only · `2` changed on a witnessed input, or
 signature changed · `3` refused (nondeterministic / unsupported, with the reason) · `4` error.
 
-Run `examples/demo.sh` for the six-step walkthrough.
+`examples/demo.sh` is the six-step walkthrough; `examples/merge_demo.sh` shows a clean git merge that
+is a behavioral conflict.
+
+## How the address is computed
+
+```
+P(f)      = P_type(signature) ∪ P_witness(f) ∪ P_suggested(f)     # deterministic, seeded, versioned
+obs(f,p)  = canonical record of f(*p): {ok, value} | {exc} | {timeout}  (+ stdout, + effects, + state for objects)
+            run twice in two processes; any disagreement ⇒ refused as nondeterministic
+address   = "bsm1:" + sha256("bisim/1" | probegen | sig_hash | merkle_root{ sha256(H(p) ‖ H(obs)) })
+```
+
+- **Probes** come from a seeded, versioned generator (`probegen/v1`) driven by the type hints:
+  boundaries first (`0, -1, 2**63, nan, -0.0, "", "héllo", [], …`), then seeded draws. Same signature
+  ⇒ same probes on any machine. Supports `int float str bool bytes None list tuple dict set frozenset
+  Optional Union Literal Any @dataclass` and nested combinations. For classes: constructor arguments
+  from the typed `__init__` or dataclass fields, and call sequences of length 1–4 over public methods.
+- **Observations** are canonicalized (big ints as decimal strings, floats via `repr` with `nan`/`inf`/
+  `-0.0` special-cased, sets sorted, dataclasses by field, other objects by public attributes) so they
+  hash identically everywhere. Exceptions are observed by type. `stdout` counts as behavior.
+- **Effects** count as behavior (see below). **State** counts as behavior for objects (see below).
+- **The sandbox** is a child process per run with a fresh scratch directory per probe, the network and
+  subprocesses blocked, `PYTHONHASHSEED=0`, a memory ceiling, and a per-probe timeout.
+- **Coverage** (diagnostic, never hashed): executed lines and taken branches (`if`/`elif`/`while`/`for`,
+  both outcomes) of the target, per address. `diff`/`check` grow the generated probe set 48 → 96 → … → 480
+  until nothing is unreached or coverage stops improving, and warn about what is still unreached.
+- **Witnesses** live in `.bisim/witness/<module>/<target>.json`: the input, the expected observation,
+  who recorded it, when, and what alternatives were rejected. They are probes with human authority: a
+  diff that changes a witnessed input is an *intent violation* (exit 2), not merely a change (exit 1).
 
 ## Side effects are observed, not forbidden
 
-Functions run in a fresh scratch directory per probe with the network and subprocesses blocked. Since
-0.4.0 what they *try* to do is part of the observation — an **effect ledger** appended to the record
-only when non-empty, so pure functions' addresses are unchanged:
+What a function *tries* to do is part of the observation — an **effect ledger** appended only when
+non-empty, so pure functions' addresses are unchanged:
 
 | effect | recorded as |
 |---|---|
@@ -120,14 +157,9 @@ CHANGED   changed on 48 of 48 inputs
 ```
 
 Same return value on every input; the new version reads an environment variable. That is a behavioral
-change, and the address says so. (Effects are recorded in order; the filesystem snapshot is appended
-sorted. A function whose effects depend on the host — absolute paths outside the scratch dir, real env
-values — is still deterministic *on one machine*, but its address may differ across machines; the
-manifest shows exactly which effects were observed.)
+change, and the address says so.
 
 ## Classes and stateful objects
-
-Targets can be functions, methods, or whole classes:
 
 ```
 bisim hash  m.py:Stack.push        # one call on a fresh instance: Stack(capacity).push(x)
@@ -135,12 +167,13 @@ bisim hash  m.py:Stack             # seeded call sequences over public methods, 
 bisim witness add m.py:Stack --init '[2]' --calls '[["push",[1]],["push",[2]],["pop",[]]]' --run --note LIFO
 ```
 
-Instances are built from the typed `__init__` (or dataclass fields) by the same seeded generator. An
-observation is the return value (or exception) of each call **and the instance's observable state
+An observation is the return value (or exception) of each call **and the instance's observable state
 afterwards** — dataclass fields, or public attributes; private `_names` are implementation detail and
-never affect an address. Sequences keep going after an exception, the way real callers do. So a mutant
-that mutates state before raising, or a `pop` that quietly becomes FIFO, flips the address even when
-every single-call result is unchanged. `check`, `merge-check`, `reach` and `mint` all take class targets.
+never affect an address. Sequences keep going after an exception, the way real callers do. Properties
+and `cached_property` are read, `staticmethod`/`classmethod` are called, other decorators are called
+through. So a mutant that mutates state before raising, or a `pop` that quietly becomes FIFO, flips the
+address even when every single-call result is unchanged. `check`, `merge-check`, `reach` and `mint` all
+take class targets; `mint --sig-file stub.py` takes a class stub and emits sequence tests.
 
 ```
 $ bisim mint --intent "a rate limiter that allows up to limit calls until reset()" --sig-file stub.py --out rl.py
@@ -152,102 +185,73 @@ Input: new(-2147483648); remaining()   (6 behaviors still possible)
 …
 questions asked: 5   witnesses: 5
 ```
-`--sig` / `--sig-file` take a class stub (`class RateLimiter:` with `...` bodies); witnesses become
-sequence tests (`obj = RateLimiter(2); obj.allow(); assert obj.allow() == …`).
-
-Not yet: methods with decorators; properties; class methods.
 
 ## Behavioral merge conflicts
 
-Git merges text. `bisim merge-check` asks whether two branches changed the same function's behavior
-on the same inputs — and differently. `examples/merge_demo.sh`: Alice changes a fee helper at the top
-of a file; Bob changes the caller at the bottom. Different hunks, so git merges cleanly:
+Git merges text. `bisim merge-check` asks whether two branches changed the same target's behavior on
+the same inputs — and differently. Alice changes a fee helper at the top of a file; Bob changes the
+caller at the bottom. Different hunks, so git merges cleanly:
 
 ```
 $ bisim merge-check main --ours alice --theirs bob
 fees.py:_fee   ours-only            behavior changed on 48 inputs
 fees.py:total  CONFLICT             both changed 44 shared inputs; 44 disagree
     (0.0,): base=1.0  ours=3.0  theirs=2.0
-    (1.0,): base=2.0  ours=4.0  theirs=3.0
 $ git merge bob
 Merge made by the 'ort' strategy.
 $ bisim check --base main
-fees.py:total  changed   44/48 inputs
-    (0.0,): 1.0 -> 6.0          # neither author wrote this
+fees.py:total  changed   (0.0,): 1.0 -> 6.0          # neither author wrote this
 ```
 
-Statuses: `conflict` · `independent` (both changed, on disjoint inputs) · `convergent` (both made
-the same change) · `ours-only` / `theirs-only` · `delete-modify` · `added-both-same` /
-`added-both-conflict` · `signature`. Exit 2 on any conflict.
-
-## How the address is computed
-
-```
-P(f)      = P_type(signature) ∪ P_witness(f) ∪ P_suggested(f)     # deterministic, seeded, versioned
-obs(f,p)  = canonical record of f(*p): {ok, value} | {exc} | {timeout}, run twice in two processes
-address   = "bsm1:" + sha256("bisim/1" | probegen | sig_hash | merkle_root{ sha256(H(p) ‖ H(obs)) })
-```
-
-- **Probes** come from a seeded, versioned generator (`probegen/v1`) driven by the type hints:
-  boundaries first (`0, -1, 2**63, nan, -0.0, "", "héllo", [], …`), then seeded draws. Same signature
-  ⇒ same probes on any machine. Supports `int float str bool bytes None list tuple dict set frozenset
-  Optional Union Literal Any @dataclass` and nested combinations.
-- **Observations** are canonicalized (big ints as decimal strings, floats via `repr` with `nan`/`inf`/
-  `-0.0` special-cased, sets sorted, dataclasses by field) so they hash identically everywhere.
-  Exceptions are observed by type. `stdout` is captured and counts as behavior.
-- **The sandbox** is a child process with the network blocked, a fresh temp cwd, `PYTHONHASHSEED=0`,
-  a memory ceiling, and a per-probe timeout. Every probe runs in two separate processes; any
-  disagreement means the function is **nondeterministic and refused** — no address is minted.
-- **Witnesses** live in `.bisim/witness/<module>/<fn>.json`: the input, the expected observation, who
-  recorded it, when, and what alternatives were rejected. They are probes with human authority: a
-  diff that changes a witnessed input is an *intent violation* (exit 2), not merely a change (exit 1).
+Statuses: `conflict` · `independent` · `convergent` · `ours-only` / `theirs-only` · `delete-modify` ·
+`added-both-same` / `added-both-conflict` · `signature`. Exit 2 on any conflict.
 
 ## Reaching what the generator can't
 
 The seeded generator is blind to conditions like `7000 < x < 7100 and s.startswith("zz")`. `bisim hash`
-says so (`coverage=57.1% … missed lines: 3, 5, 7`). `bisim reach` shows the model the function and the
-unreached lines, asks for inputs that execute them, **runs each proposal under coverage** and keeps only
-the ones that verifiably reach a missed line — as `suggested` probes in the ledger, so every later
-`hash`/`diff`/`check` includes them:
-
-```
-$ bisim reach narrow.py:classify
-classify: lines never reached before: 3, 5, 7
-  + (7050, 'zzabc')
-  + (-424242, 'a')
-  + (0, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-  added 3 suggested probe(s), rejected 0 proposal(s)
-  coverage now 100.0%
-```
-
-The model proposes; the sandbox decides. A proposal that doesn't reach a missed line, doesn't run, or
-runs nondeterministically is rejected.
+says so (`lines 57.1% … missed lines: 3, 5, 7`, `branches never taken: L2 true`). `bisim reach` shows
+the model the target and the unreached lines/branches, asks for inputs that execute them, **runs each
+proposal under coverage** and keeps only the ones that verifiably reach something new — as `suggested`
+probes in the ledger, so every later `hash`/`diff`/`check` includes them. The model proposes; the
+sandbox decides.
 
 ## How `mint` works
 
 1. The model proposes *k* implementations that are individually reasonable but behaviorally different,
-   and lists the ambiguities it exploited plus inputs likely to expose them.
+   and lists the ambiguities it exploited plus inputs likely to expose them. If a shared registry is
+   configured, implementations of the same interface that someone already witnessed join the pool.
 2. Every candidate runs on the full probe set. Candidates that don't run, are nondeterministic, or
    raise `NameError`-class errors are dropped.
 3. Candidates are grouped into behavior classes by address.
-4. While more than one class survives, `bisim` picks the probe that splits the classes best
-   (most distinct outputs, then highest entropy, then prefer human/model-chosen inputs over generated
-   boundaries, then the simplest input) and asks. You choose an option, type the right output, mark the
-   input invalid (a precondition), or stop. Each answer is saved before the next question.
+4. While more than one class survives, `bisim` picks the probe that splits the classes best (most
+   distinct outputs, then highest entropy, then human/model-chosen inputs over generated boundaries,
+   then the simplest input) and asks. You choose an option, type the right output, mark the input
+   invalid (a precondition), or stop. Each answer is saved before the next question.
 5. If your answer matches no candidate, the model is asked again with the witnesses as hard
-   constraints (up to two regeneration rounds). If nothing matches, `mint` stops — with your
-   witnesses on disk.
+   constraints (up to two regeneration rounds).
 6. **Confirmation.** Once one class survives, it has only been checked where *surviving* candidates
    disagreed. So `mint` shows you up to `--confirm N` (default 3) inputs that were contested by *any*
-   candidate ever proposed — e.g. "on `('hello', -1)` the chosen implementation returns `''`; others
-   raised `ValueError`" — and you approve or correct. A correction prunes the survivor and triggers
-   regeneration. This step is what the original TiCoder protocol lacks, and it is where the benchmark
-   below recovers its misses.
-7. The survivor is written out, pushed to `.bisim/store/<address>/`, and the witnesses become a pytest
-   file — plain asserts, no `bisim` dependency.
+   candidate — covering different *kinds* of disagreement first (value-vs-value, value-vs-exception,
+   exception-type-vs-exception-type), model-suggested inputs first, one per distinct set of dissenters —
+   and you approve or correct. A correction prunes the survivor and triggers regeneration. This step is
+   what the original TiCoder protocol lacks, and it is where the evaluation below recovers its misses.
+7. The survivor is written out, pushed to the registry, and the witnesses become a pytest file — plain
+   asserts, no `bisim` dependency.
 
-This is the TiCoder loop (Microsoft, 2022/2024) with a different output: not a ranked list you discard,
-but a persistent, versioned, content-addressed record of intent that `diff` and `check` enforce forever.
+## Shared registry
+
+```
+bisim serve --dir /srv/bisim --port 8765            # zero-dependency HTTP server
+bisim init --registry http://registry.internal:8765 # or: export BISIM_REGISTRY=…
+bisim hash f.py:f --push                            # local store + shared registry
+bisim lookup --sig "def median(xs: list[float]) -> float"
+interface 3f1c0e2a9b7d…  2 implementation(s):
+  bsm1:0ced364a0934…  remote  witnesses=2  median of a list of numbers
+```
+
+The registry is content-addressed by behavior and indexed by interface hash, so an agent can ask "has
+anyone already witnessed an implementation of this signature?" before generating a new one — and
+`mint` does exactly that. No auth; put it behind whatever your team already uses.
 
 ## Evaluation
 
@@ -279,9 +283,9 @@ Per-task tables are in `examples/bench/results*.json`. Two things worth knowing:
 - The held-out miss (`capitalize_words`) shows the protocol's hard limit: the reference split words on
   single spaces only; *no* candidate ever behaved that way, and none of the confirmation inputs
   happened to contain a tab or newline, so nothing contradicted the survivor and no regeneration was
-  triggered. `mint` can only converge on behaviors the model proposes or that a witness forces it to
-  propose. (One dev-set reference, `round_half`, was corrected during development: it used the
-  `floor(x + 0.5)` idiom whose float artifact contradicts "nearest integer"; the fix is in the file.)
+  triggered. `mint` can only converge on behaviors the model proposes, a witness forces it to propose,
+  or a registry already holds. (One dev-set reference, `round_half`, was corrected during development:
+  it used the `floor(x + 0.5)` idiom whose float artifact contradicts "nearest integer".)
 
 ## Prior art, and what is actually new here
 
@@ -290,51 +294,41 @@ Per-task tables are in `examples/bench/results*.json`. Two things worth knowing:
 | Content-addressed code | Unison, Aura VCS, Sem, protein-hash, Nulang, Rust `semantic-diff`, Dhall | All hash **syntax** (AST/MIR/normal forms). Aura: "Two nodes with different hashes… might be equivalent at runtime; Aura does not try to prove that." |
 | Behavior fingerprints | behaviorprint (JS), fnprint (binaries), BeCoV (arXiv 2604.16933), hand-rolled snippets | Diff reports and archives, not identities. BeCoV observes whatever the existing test suite happens to hit; its authors list "robust fingerprinting" and "branching and merging" as future work. |
 | Change-directed test generation | SemaDiff (2607.13111), DiffTestGen (2607.16024), Testora (2503.18597), differential fuzzing (2602.15761) | Per-PR, model-generated tests: nondeterministic, no stable identity across commits or machines, no human ledger. Strong evidence the *problem* is real (they expose behavioral differences in ~76–78% of PRs). |
-| Interactive intent elicitation | TiCoder (MSR), CodeT/AlphaCode clustering | Ephemeral: nothing persists, nothing is versioned, nothing is reused. |
+| Interactive intent elicitation | TiCoder (MSR), CodeT/AlphaCode clustering | Ephemeral: nothing persists, nothing is versioned, nothing is reused; no confirmation phase. |
 | "Version behavior" framing | Morph | Versions eval *scores* per commit; no function-level behavioral identity, no witnessing. |
 | Intent tooling for agents | northstar, IIC, taskwitness, tink, witness | Intent is *written* (frozen requirements, hash-locked Given/When/Then), not *discovered* on discriminating inputs, and never becomes the code's identity. |
 
 **The composition — a deterministic, signature-derived probe set that makes behavior a stable identity,
-signed by human-witnessed discriminating inputs, used as the unit of diff, CI gating, and reuse — had
-no prior instance in two sweeps of arXiv, GitHub, HN, PyPI and X through 2026-09-11.** Each ingredient
-existed somewhere. The primitive did not. (Git was Merkle trees + diffs + DAGs; none were new either.)
+signed by human-witnessed discriminating inputs, used as the unit of diff, CI gating, merge analysis,
+and reuse — had no prior instance in two sweeps of arXiv, GitHub, HN, PyPI and X through 2026-09-11.**
+Each ingredient existed somewhere. The primitive did not. (Git was Merkle trees + diffs + DAGs; none
+were new either.)
 
-## Limitations (v1, deliberate)
+## Limitations
 
-- Python ≥ 3.11 only; top-level functions and classes with complete type hints; positional arguments.
+- Python ≥ 3.11; top-level functions and classes with complete type hints; positional arguments.
 - Deterministic code. Nondeterminism is refused, not tolerated. Network and subprocesses are blocked
-  (the attempt is recorded); file and environment effects are recorded, not sandboxed away.
-- Async, generators, `*args/**kwargs`, keyword-only parameters, decorated methods, and parameter types
-  the generator can't construct (arbitrary non-dataclass classes, callables) are refused with a reason.
-  A target with unsupported parameter types can still be addressed **witness-only** if its ledger has
+  (the attempt is recorded).
+- Async, generators, `*args/**kwargs`, keyword-only parameters, dunder methods, and parameter types the
+  generator can't construct (arbitrary non-dataclass classes, callables) are refused with a reason. A
+  target with unsupported parameter types can still be addressed **witness-only** if its ledger has
   inputs.
-- Registry is local (`.bisim/store`, git-committable). No SMT, no coverage-guided probe growth.
+- Addresses are relative to a runtime: a Python release that changes numeric semantics changes them
+  (see `sum()` above). The manifest records the runtime; `diff` warns when they differ.
 - Same address is evidence, not proof. Read the guarantee above.
-
-## Roadmap
-
-Done since the v1 spec: line coverage per address and growth-until-plateau in `diff`/`check` ·
-`reach` · `merge-check` · confirmation phase in `mint` · evaluation harness · GitHub Action.
-
-Done in 0.3.0: methods and classes via constructor + call-sequence probes, with state in observations.
-
-Done in 0.4.0: effect ledgers. Done in 0.5.0: `mint` and `reach` for classes.
-
-Next: branch (not just line) coverage · a shared registry so agents reuse witnessed implementations
-instead of regenerating them · decorated methods and properties.
 
 ## Development
 
 ```bash
 uv venv && uv pip install -e ".[dev]"
-.venv/bin/pytest -q           # 178 tests, ~30 s, offline
+.venv/bin/pytest -q           # 193 tests, ~35 s, offline; passes on 3.11, 3.12, 3.13, 3.14
 python -m bisim.evalbench     # reproduce the evaluation from cached generations
-bash examples/demo.sh
+bash examples/demo.sh; bash examples/merge_demo.sh
+uv build                      # wheel + sdist
 ```
 
-Design spec: `docs/superpowers/specs/2026-09-11-bisim-design.md`. Plan: `docs/superpowers/plans/2026-09-11-bisim.md`.
-
-MIT.
+Design spec with amendments: `docs/superpowers/specs/2026-09-11-bisim-design.md`. Plan:
+`docs/superpowers/plans/2026-09-11-bisim.md`. Changes: `CHANGELOG.md`. Contributing: `CONTRIBUTING.md`.
 
 ## GitHub Action
 
@@ -347,6 +341,4 @@ MIT.
     fail-on: witness                 # or "change" to block on any behavioral change
 ```
 
-Every changed function is diffed against the base ref; the table lands in the job summary. Probe sets
-widen automatically until each function's lines have all executed at least once (or coverage plateaus),
-and any lines that never ran are named in the output.
+MIT.

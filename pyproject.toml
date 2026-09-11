@@ -1,11 +1,31 @@
 [project]
 name = "bisim"
-version = "0.5.0"
-description = "Behavior-addressed code: address functions by what they do, witnessed by humans."
+version = "1.0.0"
+description = "Behavior-addressed code: address functions and classes by what they do, witnessed by humans."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Manav Patel" }]
+keywords = ["testing", "verification", "code-review", "ai-generated-code", "content-addressing", "behavioral-diff", "intent"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Testing",
+  "Topic :: Software Development :: Version Control",
+]
+
+[project.urls]
+Homepage = "https://github.com/manavpatel/bisim"
+Changelog = "https://github.com/manavpatel/bisim/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 llm = ["anthropic>=0.40"]
