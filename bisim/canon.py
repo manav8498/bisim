@@ -12,6 +12,7 @@ import dataclasses
 import hashlib
 import json
 import math
+import types
 
 
 def _float_repr(x: float) -> str:
@@ -47,6 +48,15 @@ def canon(v):
     if dataclasses.is_dataclass(v) and not isinstance(v, type):
         fields = sorted(dataclasses.fields(v), key=lambda f: f.name)
         return ["D", type(v).__qualname__, [[f.name, canon(getattr(v, f.name))] for f in fields]]
+    if isinstance(v, (type, types.FunctionType, types.BuiltinFunctionType, types.MethodType)):
+        return ["r", type(v).__qualname__, getattr(v, "__qualname__", repr(v))]
+    d = getattr(v, "__dict__", None)
+    if isinstance(d, dict):  # ordinary object: structural, by public attributes (never its memory address)
+        return ["o", type(v).__qualname__, sorted(([k, canon(x)] for k, x in d.items() if not k.startswith("_")), key=lambda kv: kv[0])]
+    slots = getattr(type(v), "__slots__", None)
+    if slots is not None and type(v).__module__ != "builtins":
+        names = [slots] if isinstance(slots, str) else list(slots)
+        return ["o", type(v).__qualname__, sorted(([k, canon(getattr(v, k))] for k in names if hasattr(v, k) and not k.startswith("_")), key=lambda kv: kv[0])]
     return ["r", type(v).__qualname__, repr(v)]
 
 
@@ -78,6 +88,8 @@ def uncanon(t, resolver=None):
             raise ValueError(f"cannot construct dataclass {t[1]} without a resolver")
         cls = resolver(t[1])
         return cls(**{name: uncanon(x, resolver) for name, x in t[2]})
+    if tag == "o":
+        raise ValueError(f"cannot reconstruct an arbitrary object of type {t[1]}")
     raise ValueError(f"cannot reconstruct opaque value: {t!r}")
 
 

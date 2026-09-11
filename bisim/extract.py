@@ -98,6 +98,10 @@ class ClassSpec:
     lineno: int
     lines: list[int] = field(default_factory=list)
     decisions: list[dict] = field(default_factory=list)
+    kinds: dict[str, str] = field(default_factory=dict)  # name → "method" | "property" | "static" | "classmethod"
+
+    def properties(self) -> list[str]:
+        return sorted(m for m, k in self.kinds.items() if k == "property")
 
     def public_methods(self) -> list[str]:
         return sorted(m for m in self.methods if not m.startswith("_"))
@@ -128,15 +132,43 @@ def _is_dataclass_decorated(node: ast.ClassDef) -> bool:
     return False
 
 
-def _method_spec(node: ast.FunctionDef, src: str, path: str) -> FunctionSpec:
-    if node.decorator_list:
-        raise Unsupported(f"{node.name}: decorated methods are not supported")
+_PROPERTY_DECOS = {"property", "cached_property"}
+
+
+def _decorator_name(d) -> str:
+    t = d.func if isinstance(d, ast.Call) else d
+    if isinstance(t, ast.Name):
+        return t.id
+    if isinstance(t, ast.Attribute):
+        return t.attr
+    return ""
+
+
+def _method_kind(node: ast.FunctionDef) -> str:
+    names = {_decorator_name(d) for d in node.decorator_list}
+    if names & _PROPERTY_DECOS:
+        return "property"
+    if "staticmethod" in names:
+        return "static"
+    if "classmethod" in names:
+        return "classmethod"
+    return "method"  # other decorators (lru_cache, custom) are called like ordinary methods
+
+
+def _method_spec(node: ast.FunctionDef, src: str, path: str) -> tuple[FunctionSpec, str]:
+    kind = _method_kind(node)
     a = node.args
-    if not (a.posonlyargs + a.args) or (a.posonlyargs + a.args)[0].arg != "self":
-        raise Unsupported(f"{node.name}: first parameter must be self")
-    spec = _spec_from_def(_without_self(node), src, path)
+    first = (a.posonlyargs + a.args)[0].arg if (a.posonlyargs + a.args) else None
+    if kind == "static":
+        spec = _spec_from_def(node, src, path)
+    else:
+        if first not in ("self", "cls"):
+            raise Unsupported(f"{node.name}: first parameter must be self")
+        spec = _spec_from_def(_without_self(node), src, path)
+    if kind == "property" and spec.params:
+        raise Unsupported(f"{node.name}: a property cannot take parameters")
     spec.name = node.name
-    return spec
+    return spec, kind
 
 
 def _without_self(node: ast.FunctionDef) -> ast.FunctionDef:
@@ -155,13 +187,14 @@ def _class_spec(node: ast.ClassDef, src: str, path: str) -> ClassSpec:
     is_dc = _is_dataclass_decorated(node)
     init_params: list[tuple[str, str]] = []
     methods: dict[str, FunctionSpec] = {}
+    kinds: dict[str, str] = {}
     init_node = None
     for item in node.body:
         if isinstance(item, ast.FunctionDef) and item.name == "__init__":
             init_node = item
         elif isinstance(item, ast.FunctionDef) and not (item.name.startswith("__") and item.name.endswith("__")):
             try:
-                methods[item.name] = _method_spec(item, src, path)
+                methods[item.name], kinds[item.name] = _method_spec(item, src, path)
             except Unsupported:
                 continue
         elif isinstance(item, ast.AsyncFunctionDef):
@@ -183,7 +216,7 @@ def _class_spec(node: ast.ClassDef, src: str, path: str) -> ClassSpec:
             init_params.append((arg.arg, ast.unparse(arg.annotation)))
     lines = sorted({l for item in node.body if isinstance(item, ast.FunctionDef) for l in _executable_lines(item)})
     decisions = sorted((d for item in node.body if isinstance(item, ast.FunctionDef) for d in _decisions(item)), key=lambda d: d["line"])
-    return ClassSpec(node.name, init_params, methods, is_dc, ast.get_source_segment(src, node) or "", path, node.lineno, lines, decisions)
+    return ClassSpec(node.name, init_params, methods, is_dc, ast.get_source_segment(src, node) or "", path, node.lineno, lines, decisions, kinds)
 
 
 def extract_class(path: str, name: str) -> ClassSpec:

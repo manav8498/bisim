@@ -261,7 +261,7 @@ def class_sig_hash(cls: ClassSpec, method: str | None = None) -> str:
     names = [method] if method else cls.public_methods()
     for m in names:
         f = cls.methods[m]
-        parts.append([m, [t for _, t in f.params], f.returns])
+        parts.append([m, cls.kinds.get(m, "method"), [t for _, t in f.params], f.returns])
     return sha256_hex(canon_json(parts))
 
 

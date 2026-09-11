@@ -5,7 +5,29 @@ from .canon import dumps, is_opaque, uncanon
 
 
 def _val(v) -> str:
-    return dumps(v) if is_opaque(v) else repr(uncanon(v))
+    if is_opaque(v):
+        return dumps(v)
+    try:
+        return repr(uncanon(v))
+    except ValueError:  # contains an ["o", …] object node
+        return _render(v)
+
+
+def _render(t) -> str:
+    tag = t[0]
+    if tag == "o":
+        return f"{t[1]}({', '.join(f'{k}={_render(x)}' for k, x in t[2])})"
+    if tag in ("l", "t", "S"):
+        inner = ", ".join(_render(x) for x in t[1])
+        return {"l": f"[{inner}]", "t": f"({inner})", "S": "{" + inner + "}"}[tag]
+    if tag == "d":
+        return "{" + ", ".join(f"{_render(k)}: {_render(x)}" for k, x in t[1]) + "}"
+    if tag == "D":
+        return f"{t[1]}({', '.join(f'{k}={_render(x)}' for k, x in t[2])})"
+    try:
+        return repr(uncanon(t))
+    except ValueError:
+        return dumps(t)
 
 
 def describe_obs(o: dict) -> str:

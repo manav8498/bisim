@@ -190,9 +190,9 @@ def _state(obj):
     return {s: getattr(obj, s) for s in slots if hasattr(obj, s) and not s.startswith("_")}
 
 
-def _run_sequence(cls, args, canon):
+def _run_sequence(cls, args, canon, properties=()):
     """args = (init_args, ((method, margs), ...)). Exceptions are observations; later calls still run,
-    because callers do keep using an object after catching an exception."""
+    because callers do keep using an object after catching an exception. Properties are read, not called."""
     init_args, calls = args
     try:
         obj = cls(*init_args)
@@ -203,6 +203,9 @@ def _run_sequence(cls, args, canon):
     steps = []
     for m, margs in calls:
         try:
+            if m in properties:
+                steps.append({"ok": True, "value": canon(getattr(obj, m))})
+                continue
             steps.append({"ok": True, "value": canon(getattr(obj, m)(*margs))})
         except _Timeout:
             raise
@@ -287,7 +290,7 @@ def main():
                     if cls is None:
                         rec = {"ok": True, "value": canon(fn(*args))}
                     else:
-                        rec = _run_sequence(cls, args, canon)
+                        rec = _run_sequence(cls, args, canon, set(job.get("properties") or ()))
             finally:
                 sys.settrace(None)
                 signal.setitimer(signal.ITIMER_REAL, 0)

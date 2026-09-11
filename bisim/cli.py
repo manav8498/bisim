@@ -139,7 +139,7 @@ def cmd_witness(args) -> int:
     # add
     raw = _witness_args(t, args)
     if args.run:
-        expect = observe(path, spec.name if t.kind == "function" else "", [Probe(tuple(raw), "witness")], args.timeout, class_name=t.class_name)[0]
+        expect = observe(path, spec.name if t.kind == "function" else "", [Probe(tuple(raw), "witness")], args.timeout, class_name=t.class_name, properties=t.properties())[0]
     elif args.raises:
         expect = {"ok": False, "exc": args.raises}
     elif args.expect is not None:

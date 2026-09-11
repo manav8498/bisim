@@ -131,9 +131,12 @@ class Target:
         return out, warnings
 
     # --- execution --------------------------------------------------------------
+    def properties(self) -> list[str]:
+        return [] if self.kind == "function" else self.spec.properties()
+
     def observe(self, probes: list[Probe], timeout: float = DEFAULT_TIMEOUT) -> tuple[list[dict], list[set[int]]]:
         fn = self.spec.name if self.kind == "function" else ""
-        return observe_cov(self.path, fn, probes, timeout, class_name=self.class_name)
+        return observe_cov(self.path, fn, probes, timeout, class_name=self.class_name, properties=self.properties())
 
     def manifest(self, probes: list[Probe], obs: list[dict], cov: list[set[int]] | None = None) -> Manifest:
         summary = coverage_summary(self.lines(), cov, self.decisions()) if cov is not None else None

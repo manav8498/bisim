@@ -41,11 +41,23 @@ def test_dataclass():
     assert c[0] == "D" and c[1].endswith("P") and c[2] == [["x", ["i", "1"]], ["y", ["s", "z"]]]
 
 
+def test_objects_are_structural_not_opaque():
+    class Q:
+        def __init__(self):
+            self.a = 1
+            self._hidden = 2
+
+    assert canon(Q()) == ["o", "test_objects_are_structural_not_opaque.<locals>.Q", [["a", ["i", "1"]]]]
+    assert not is_opaque(canon(Q()))
+    assert is_opaque(canon(object()))
+
+
 def test_opaque_flag():
     class Q:
-        pass
+        __slots__ = ()
 
-    assert is_opaque(canon([Q()]))
+    assert is_opaque(canon([Q()])) is False and canon(Q()) == ["o", "test_opaque_flag.<locals>.Q", []]
+    assert is_opaque(canon([object()]))
     assert is_opaque(canon({"k": (Q(),)}))
     assert not is_opaque(canon([1, 2]))
     assert not is_opaque(canon({"k": [1, {2}]}))

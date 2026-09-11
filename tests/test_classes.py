@@ -56,8 +56,8 @@ def test_parse_target():
 def test_extract_class(mod):
     c = extract_class(mod, "Stack")
     assert c.name == "Stack" and c.init_params == [("capacity", "int")] and not c.is_dataclass
-    assert sorted(c.methods) == ["_secret", "pop", "push", "size"]  # staticmethod and untyped skipped
-    assert c.public_methods() == ["pop", "push", "size"]
+    assert sorted(c.methods) == ["_secret", "make", "pop", "push", "size"]  # untyped skipped; static kept
+    assert c.public_methods() == ["make", "pop", "push", "size"] and c.kinds["make"] == "static"
     assert c.methods["push"].params == [("x", "int")] and c.methods["push"].returns == "None"
     assert c.methods["pop"].params == [] and c.lines  # executable lines of the whole class body
 
@@ -88,6 +88,6 @@ def test_method_and_sequence_probes(mod):
     lens = {len(p.args[1]) for p in sp}
     assert min(lens) == 1 and max(lens) <= 4
     names = {m for p in sp for m, _ in p.args[1]}
-    assert names == {"pop", "push", "size"}  # private methods never appear in sequences
+    assert names == {"make", "pop", "push", "size"}  # private methods never appear in sequences
     # determinism
     assert [p.id for p in generate_sequence_probes(c)] == [p.id for p in sp]
