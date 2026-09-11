@@ -1,2 +1,2 @@
 """bisim: addresses for code based on what it does."""
-__version__ = "1.0.1"
+__version__ = "1.1.0"

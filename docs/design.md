@@ -9,8 +9,18 @@ address = "bsm1:" + sha256("bisim/1" | probegen | sig_hash | root)
 ```
 
 - `probegen` is the version of the input generator, currently `v1`.
-- `sig_hash` is a hash of the parameter types and the return type. Parameter names are not included, so renaming a parameter does not change the address. For a class, it covers the constructor types and the name, kind, parameter types and return type of every public method.
+- `sig_hash` is a hash of the parameter types and the return type. Parameter names and default values are not included. Renaming a parameter does not change the address; changing a default value changes behavior on the inputs that leave that parameter out, so it shows up as a behavior change, not a signature change. For a class, it covers the constructor types and the name, kind, parameter types and return type of every public method.
 - `root` is the root of a Merkle tree over the (input, result) pairs. The leaves are `sha256(input_id + result_hash)`, sorted, so the order in which inputs were run does not matter.
+
+## Identity and evidence
+
+The address covers exactly the first 48 generated inputs (`STANDARD_COUNT`). That set depends only on the
+signature and the generator version, so the address is a property of the code alone. It does not change
+when someone adds a witness, when `reach` adds a suggested input, or when `diff` grows the probe set.
+
+Witnessed and suggested inputs are hashed separately into the evidence value (`bse1:` plus 64 hex
+characters). The manifest carries both. Verdicts (`diff`, `check`, `merge-check`) use every input that was
+run; only the address is restricted to the standard set.
 
 ## Inputs
 
@@ -38,7 +48,11 @@ Optional fields:
 - `effects`: files opened, files left in the scratch directory (with content hashes), environment variables read, and blocked network or subprocess attempts. Present only when the list is not empty.
 - for class and method targets: `steps` (one record per call) and `state` (the public attributes of the object afterwards). A failing constructor gives `{"ok": false, "exc": ..., "at": "init"}`.
 
-Every input is run twice, in two separate processes. If the two results differ, the target is refused and no address is produced.
+Before every input, the child process re-imports the target module and any project-local modules it pulled in, so module-level state starts fresh each time. Third-party and standard library modules stay loaded. The blockers for network, subprocess, file and environment access are installed before the first import, so import-time effects are recorded and blocked like any other.
+
+Every input is run twice, in two separate processes, and the second process runs the inputs in reverse order. If the two results differ for any input, the target is refused and no address is produced. This catches randomness and it catches results that depend on state shared between calls.
+
+`BISIM_ISOLATION=process` runs one child process per input. `BISIM_RUNNER_WRAPPER` prefixes the child command with a sandboxing tool for code you do not trust.
 
 ## Canonical form
 
@@ -82,4 +96,5 @@ Coverage is reported alongside the address. It is not part of the hash.
 
 ## Version history of the format
 
-- 1.0: functions, methods and classes; effects; line and branch coverage; structural form for objects. The address format has not changed since the first release, so addresses computed by any 1.x version are comparable.
+- 1.0: functions, methods and classes; effects; line and branch coverage; structural form for objects.
+- 1.1: the address covers the 48 standard inputs only; witnesses and suggested inputs moved to the separate evidence hash. Inputs that leave out defaulted parameters were added to the generator. Module state is reset between inputs. Addresses of functions without defaults and without module-level state are unchanged from 1.0. Addresses of functions with default parameters changed, because the generated input set changed. Addresses of targets that had witnesses changed, because witnesses no longer feed the address.

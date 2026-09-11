@@ -50,11 +50,14 @@ Run `bash examples/demo.sh` to see the full walkthrough.
 
 ## How it works
 
-1. **Probes.** bisim reads the type hints of the function and generates inputs from them. The generator is seeded, so the same signature always produces the same inputs on any machine. It starts with edge cases (`0`, `-1`, very large numbers, `nan`, empty strings, unicode, empty lists) and then adds seeded random values. The default is 48 inputs.
-2. **Observations.** Each input is run in a separate process with a timeout, a fresh scratch directory, and no network. bisim records the return value, or the exception type, plus anything printed. It runs everything twice in two processes. If any result differs between the two runs, the function is refused as nondeterministic and gets no address.
-3. **Address.** The (input, result) pairs are hashed into a Merkle tree. The root, together with the signature and the generator version, becomes the address: `bsm1:` followed by 64 hex characters.
+1. **Probes.** bisim reads the type hints of the function and generates inputs from them. The generator is seeded, so the same signature always produces the same inputs on any machine. It starts with edge cases (`0`, `-1`, very large numbers, `nan`, empty strings, unicode, empty lists) and then adds seeded random values. Parameters with default values are sometimes left out, so the defaults are exercised too. The identity always uses exactly 48 generated inputs.
+2. **Observations.** Each input runs in a child process with a timeout, a fresh scratch directory, and the network blocked. Before every input, the target module and any project-local modules it imports are loaded again from scratch, so module-level state cannot leak from one input to the next. bisim records the return value, or the exception type, plus anything printed and any side effects. It then runs all inputs a second time, in a second process, in reverse order. If any result differs between the two runs, the function is refused. That catches randomness and it catches results that depend on the order of calls.
+3. **Address.** The (input, result) pairs of the 48 standard inputs are hashed into a Merkle tree. The root, together with the signature and the generator version, becomes the address: `bsm1:` followed by 64 hex characters.
 
-Every address also comes with coverage: which lines and which branches of the function the inputs reached. This is reported, not hashed.
+Two things are kept separate from the address on purpose:
+
+- **Evidence.** Inputs a person approved (witnesses) and inputs a model found for unreached code (suggested) are hashed into a second value, `bse1:...`. Adding a witness to unchanged code does not change the code's address. It changes the evidence.
+- **Coverage.** Which lines and branches the inputs reached. Reported, not hashed.
 
 ```
 $ bisim hash examples/median_v1.py:median
@@ -69,9 +72,11 @@ bsm1:b16f538238eb431446a900a5c58a9d86fe8a6bd95ef116ba9c00246a521e91f3
 - **Different addresses mean the code behaves differently.** bisim always shows a concrete input and both results.
 - **The same address means the code behaves the same on every input bisim tried.** It is not a proof that the code is identical on all possible inputs.
 
-This is the right direction for a gate. bisim never reports a difference that is not real. It can miss a difference on inputs it did not try. That is why every address reports its coverage and names the lines and branches nothing reached, why `diff` and `check` add more inputs until coverage stops improving, and why witnesses and `reach` exist.
+This is the right direction for a gate. bisim never reports a difference that is not real. It can miss a difference on inputs it did not try. That is why every address reports its coverage and names the lines and branches nothing reached, why `diff` and `check` add more inputs (96, 192, up to 480) until coverage stops improving, and why witnesses and `reach` exist. The verdict of `diff` and `check` uses every input that was run, including witnesses and the extra inputs from growth. The address uses only the 48 standard ones.
 
 The test suite checks this on 15 pairs of rewritten functions and classes (same address every time) and 14 pairs with a planted bug (different address every time, with an input that reproduces the bug). Across Python 3.11 to 3.14, 59 of 61 test fixtures get identical addresses. The two that differ add floats with `sum()`, and Python 3.12 changed how `sum()` rounds floats. That is a real difference in behavior, and bisim reports it.
+
+`python -m bisim.mutbench` measures this at a larger scale. See "How much the probes catch" below.
 
 ## Witnesses
 
@@ -104,7 +109,7 @@ A target is `f` for a function, `Stack` for a class, or `Stack.push` for one met
 
 Exit codes: `0` same, `1` changed, `2` changed on a witnessed input or the signature changed, `3` refused (the code could not be probed, with the reason), `4` error.
 
-## Side effects
+## Side effects, and what the sandbox is
 
 Functions run in a scratch directory with the network and subprocesses blocked. What a function tries to do is recorded as part of its behavior:
 
@@ -125,6 +130,8 @@ CHANGED   changed on 48 of 48 inputs
 ```
 
 Pure functions have no effects recorded, so their addresses are unaffected by this feature.
+
+The blocking is done by replacing Python functions (`socket`, `subprocess`, `open`, `os.environ`) inside the child process, and it is installed before the target module is imported. This is enough to keep results deterministic and to observe what code tries to do. It is not a security boundary. Code that wants to escape it can. If you run bisim on code you do not trust, for example pull requests from strangers, run the child process inside a real sandbox by setting `BISIM_RUNNER_WRAPPER` to a command prefix such as `bwrap --unshare-net --ro-bind / / --tmpfs /tmp --dev /dev`, or run bisim itself in a container. `BISIM_ISOLATION=process` starts one child process per input instead of one per run, which is slower and stricter.
 
 ## Classes
 
@@ -230,28 +237,35 @@ bisim lookup --sig "def median(xs: list[float]) -> float"
 
 The registry stores implementations by address and indexes them by signature. A tool or agent can ask whether someone has already approved an implementation of a signature before writing a new one. `mint` does this automatically. The server has no authentication. Run it inside your network.
 
-## Similar tools
+## Similar tools and prior work
 
-Unison, Aura, Sem and others give code a content address based on its syntax tree. Two functions that behave the same but are written differently get different hashes there. bisim hashes behavior.
+None of the ideas in bisim are new on their own. What bisim does is put them together in one tool for ordinary Python and git.
 
-Tools like behaviorprint and research prototypes like BeCoV record behavior fingerprints and diff them, but the fingerprint is a report, not an identity, and nobody signs it. Testora, SemaDiff and DiffTestGen generate tests per pull request to expose behavior changes; the tests are not deterministic and do not persist. TiCoder (Microsoft Research) asks a user to pick between candidate programs using tests, but keeps nothing afterwards and has no confirmation step.
+- **Content-addressed code.** Unison, Aura, Sem and others give code an address based on its syntax tree. Functions that behave the same but are written differently get different hashes there. bisim hashes behavior.
+- **Behavior fingerprints.** behaviorprint records outputs on boundary inputs and diffs them. The BeCoV paper (2026) proposes keeping runtime behavior records next to git history for semantic diffing and lists behavior-aware merging as future work. In both, the fingerprint is a report, not an identity, and no person signs it.
+- **Tests generated per change.** Testora, SemaDiff and DiffTestGen generate tests for a pull request to expose behavior changes. The tests are not deterministic and do not persist.
+- **Asking the user to disambiguate.** TiCoder (Microsoft Research, 2022 and 2024) generates candidate programs and distinguishing tests and asks the user which is right. `mint` uses the same loop, adds the confirmation step, and keeps the answers as witnesses.
+- **Semantic merge conflicts.** SAM (2024, Java) generates unit tests with EvoSuite and Randoop and runs them on base, both parents and the merge to find conflicts. QuietClash (2026, JavaScript) runs base, each branch and the merged result on synthesized inputs and reports a reproducing input, much like `bisim merge-check` does for Python.
 
-bisim combines these ideas: a deterministic probe set that makes behavior a stable identity, inputs approved by a person, and diff, CI, merge analysis and reuse built on that identity. As far as I could find in September 2026, no other tool does that.
+So the fair description is: bisim is a behavior identity and intent layer for Python code in git, built from deterministic behavior fingerprints, inputs approved by a person, semantic diffing, behavior-based merge checking, and interactive code writing. The combination is what is new, not the parts.
 
 ## Limits
 
-- Python 3.11 or newer. Top-level functions and classes with complete type hints. Positional arguments only.
-- The code must be deterministic. Code that gives different results on two runs is refused.
+- Python 3.11 or newer. Top-level functions and classes with complete type hints. Positional arguments, with or without defaults.
+- The code must be deterministic and must not depend on the order in which it is called. Code that fails either check is refused.
 - Not supported: async functions, generators, `*args` and `**kwargs`, keyword-only parameters, dunder methods, and parameter types bisim cannot construct (callables, classes that are not dataclasses and have no typed `__init__`). Each case is refused with a message that says why. A function with an unsupported parameter type can still be addressed if its witness file provides inputs.
+- Module-level state is reset between inputs for the target module and project-local modules only. State kept in third-party or standard library modules is not reset. The reversed second run will refuse the target if that state changes results.
+- The sandbox is not a security boundary. See "Side effects, and what the sandbox is".
 - Addresses depend on the Python version when the runtime changes numeric behavior, as with `sum()` in 3.12. The manifest records the version and `diff` warns when they differ.
 - The same address is strong evidence, not proof. See "What the address guarantees".
+- This is a young project. Version 1.x means the address format is stable, not that the tool has years of use behind it.
 
 ## GitHub Action
 
 ```yaml
 - uses: actions/checkout@v4
   with: { fetch-depth: 0 }
-- uses: manav8498/bisim@v1.0.1
+- uses: manav8498/bisim@v1.1.0
   with:
     base: origin/${{ github.base_ref }}
     fail-on: witness      # fail only on witnessed changes; use "change" to fail on any behavior change
@@ -263,8 +277,9 @@ The results appear in the job summary.
 
 ```bash
 uv venv && uv pip install -e ".[dev]"
-.venv/bin/pytest -q                  # 193 tests, about 35 seconds, no network needed
+.venv/bin/pytest -q                  # about 210 tests, under a minute, no network needed
 python -m bisim.evalbench            # rerun the mint evaluation from cached model output
+python -m bisim.mutbench             # mutation benchmark, about 10 minutes
 bash examples/demo.sh
 bash examples/merge_demo.sh
 ```

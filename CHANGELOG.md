@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0
+
+Fixes for the problems found in the first outside review.
+
+- Every input now starts from fresh module state. The target module and project-local modules are re-imported before each input, so module-level variables cannot leak between inputs and adding an input never changes another input's result.
+- The second run now uses the reverse order. A result that depends on call order is refused, the same as a random one.
+- Network, subprocess, file and environment recorders are installed before the target is imported, so import-time effects are observed and blocked.
+- The address is computed on the 48 standard generated inputs only. Witnesses and suggested inputs go into a separate evidence hash (`bse1:`). Adding a witness no longer changes the address of unchanged code.
+- Default parameter values are part of the interface. The generator leaves out trailing defaulted parameters in some inputs, so `f(x: int = 1)` and `f(x: int = 2)` now get different addresses.
+- `BISIM_ISOLATION=process` (one child process per input) and `BISIM_RUNNER_WRAPPER` (prefix the child with a real sandbox such as bwrap or a container).
+- `python -m bisim.mutbench`: mutation benchmark with an independent fuzzing oracle. Results are in the README.
+- CI runs Python 3.14 as well. The package classifier is Beta, not Production.
+- Documentation names SAM and QuietClash as prior work for merge checking and no longer claims that no other tool does behavioral merge detection.
+
+Addresses of functions with default parameters, of targets that had witnesses, and of code with module-level state can differ from 1.0.x. All other addresses are unchanged.
+
+
 ## 1.0.1
 
 - Documentation rewritten in plain language.
