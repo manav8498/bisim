@@ -80,7 +80,9 @@ def test_recursion_and_systemexit_are_observations(mod):
 
 
 def test_file_writes_land_in_temp_cwd(mod, tmp_path):
-    assert run_probes(mod, "writes", [Probe((1,))]) == [{"ok": True, "value": ["s", "wrote"]}]
+    (o,) = run_probes(mod, "writes", [Probe((1,))])
+    assert o["ok"] and o["value"] == ["s", "wrote"]
+    assert ["open", "scratch.txt", "w"] in o["effects"] and any(e[0] == "fs" and e[1] == "scratch.txt" for e in o["effects"])
     assert not (tmp_path / "scratch.txt").exists()
 
 

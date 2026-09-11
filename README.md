@@ -99,6 +99,32 @@ signature changed · `3` refused (nondeterministic / unsupported, with the reaso
 
 Run `examples/demo.sh` for the six-step walkthrough.
 
+## Side effects are observed, not forbidden
+
+Functions run in a fresh scratch directory per probe with the network and subprocesses blocked. Since
+0.4.0 what they *try* to do is part of the observation — an **effect ledger** appended to the record
+only when non-empty, so pure functions' addresses are unchanged:
+
+| effect | recorded as |
+|---|---|
+| `open(path, mode)` | `["open", path, mode]` (paths inside the scratch dir are relative) |
+| files left in the scratch dir | `["fs", path, sha256]` — content-addressed, sorted |
+| `os.environ[...]` / `os.getenv` / `in os.environ` | `["env", NAME]` |
+| socket / `create_connection` / DNS | `["net", host, port]` — then `PermissionError` |
+| `subprocess` / `os.system` | `["proc", argv0]` — then `PermissionError` |
+
+```
+$ bisim diff report_v1.py:save_report report_v2.py:save_report
+CHANGED   changed on 48 of 48 inputs
+  ('', [])   0  [effects: open(w) .txt, fs .txt=e3b0c442]   0  [effects: open(w) .txt, env REPORT_AUDIT, fs .txt=e3b0c442]
+```
+
+Same return value on every input; the new version reads an environment variable. That is a behavioral
+change, and the address says so. (Effects are recorded in order; the filesystem snapshot is appended
+sorted. A function whose effects depend on the host — absolute paths outside the scratch dir, real env
+values — is still deterministic *on one machine*, but its address may differ across machines; the
+manifest shows exactly which effects were observed.)
+
 ## Classes and stateful objects
 
 Targets can be functions, methods, or whole classes:
@@ -262,8 +288,8 @@ existed somewhere. The primitive did not. (Git was Merkle trees + diffs + DAGs; 
 ## Limitations (v1, deliberate)
 
 - Python ≥ 3.11 only; top-level functions and classes with complete type hints; positional arguments.
-- Deterministic code. Nondeterminism is refused, not tolerated. File/network side effects are not
-  modeled (network is blocked; the cwd is a scratch dir).
+- Deterministic code. Nondeterminism is refused, not tolerated. Network and subprocesses are blocked
+  (the attempt is recorded); file and environment effects are recorded, not sandboxed away.
 - Async, generators, `*args/**kwargs`, keyword-only parameters, decorated methods, and parameter types
   the generator can't construct (arbitrary non-dataclass classes, callables) are refused with a reason.
   A target with unsupported parameter types can still be addressed **witness-only** if its ledger has
@@ -278,15 +304,16 @@ Done since the v1 spec: line coverage per address and growth-until-plateau in `d
 
 Done in 0.3.0: methods and classes via constructor + call-sequence probes, with state in observations.
 
-Next: `mint`/`reach` for classes · effect ledgers (file/network calls as observations) · branch (not
-just line) coverage · a shared registry so agents reuse witnessed implementations instead of
-regenerating them.
+Done in 0.4.0: effect ledgers.
+
+Next: `mint`/`reach` for classes · branch (not just line) coverage · a shared registry so agents reuse
+witnessed implementations instead of regenerating them.
 
 ## Development
 
 ```bash
 uv venv && uv pip install -e ".[dev]"
-.venv/bin/pytest -q           # 166 tests, ~25 s, offline
+.venv/bin/pytest -q           # 173 tests, ~30 s, offline
 python -m bisim.evalbench     # reproduce the evaluation from cached generations
 bash examples/demo.sh
 ```

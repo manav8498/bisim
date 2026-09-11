@@ -18,15 +18,113 @@ import sys
 import tempfile
 
 
-def _block_network():
-    import socket
+class _Effects:
+    """Records side effects during one probe. Network and subprocess are recorded *and* blocked."""
 
-    def blocked(*a, **k):
+    def __init__(self):
+        self.items: list[list[str]] = []
+        self.cwd = os.getcwd()
+
+    def reset(self, cwd: str):
+        self.items = []
+        self.cwd = os.path.realpath(cwd)
+
+    def rel(self, path) -> str:
+        try:
+            p = os.path.realpath(os.fspath(path))
+        except TypeError:
+            return repr(path)
+        if p == self.cwd or p.startswith(self.cwd + os.sep):
+            return os.path.relpath(p, self.cwd)
+        return p
+
+    def add(self, *fields):
+        self.items.append([str(f) for f in fields])
+
+    def snapshot_fs(self):
+        """Content hashes of every file left in the scratch cwd, sorted by path."""
+        import hashlib
+
+        out = []
+        for dirpath, _dirs, files in os.walk(self.cwd):
+            for f in files:
+                full = os.path.join(dirpath, f)
+                try:
+                    with _orig_open(full, "rb") as fh:
+                        digest = hashlib.sha256(fh.read()).hexdigest()
+                except OSError:
+                    continue
+                out.append(["fs", os.path.relpath(full, self.cwd).replace(os.sep, "/"), digest])
+        return sorted(out)
+
+
+_orig_open = open
+EFFECTS = _Effects()
+
+
+def _install_effect_recorders():
+    """Patch the process so file, env, network, and subprocess use is observed."""
+    import builtins
+    import io
+    import socket
+    import subprocess
+
+    def rec_open(file, mode="r", *a, **k):
+        if isinstance(file, (str, bytes, os.PathLike)):
+            EFFECTS.add("open", EFFECTS.rel(file).replace(os.sep, "/"), mode)
+        return _orig_open(file, mode, *a, **k)
+
+    builtins.open = rec_open  # type: ignore[assignment]
+    io.open = rec_open  # type: ignore[assignment]
+
+    class RecordingEnv(dict):
+        def __init__(self, base):
+            super().__init__(base)
+
+        def __getitem__(self, k):
+            EFFECTS.add("env", k)
+            return super().__getitem__(k)
+
+        def get(self, k, default=None):
+            EFFECTS.add("env", k)
+            return super().get(k, default)
+
+        def __contains__(self, k):
+            EFFECTS.add("env", k)
+            return super().__contains__(k)
+
+    os.environ = RecordingEnv(os.environ)  # type: ignore[assignment]
+    os.getenv = lambda key, default=None: os.environ.get(key, default)  # type: ignore[assignment]
+
+    def blocked_socket(*a, **k):
+        EFFECTS.add("net", "socket")
         raise PermissionError("bisim sandbox: network is blocked")
 
-    socket.socket = blocked  # type: ignore[assignment]
-    socket.create_connection = blocked  # type: ignore[assignment]
-    socket.getaddrinfo = blocked  # type: ignore[assignment]
+    def blocked_connect(address=None, *a, **k):
+        host, port = (address if isinstance(address, tuple) and len(address) == 2 else ("?", "?"))
+        EFFECTS.add("net", host, port)
+        raise PermissionError("bisim sandbox: network is blocked")
+
+    def blocked_getaddrinfo(host=None, *a, **k):
+        EFFECTS.add("net", host, "?")
+        raise PermissionError("bisim sandbox: network is blocked")
+
+    socket.socket = blocked_socket  # type: ignore[assignment]
+    socket.create_connection = blocked_connect  # type: ignore[assignment]
+    socket.getaddrinfo = blocked_getaddrinfo  # type: ignore[assignment]
+
+    def blocked_popen(self, args, *a, **k):
+        argv0 = args[0] if isinstance(args, (list, tuple)) and args else str(args).split()[0] if args else "?"
+        EFFECTS.add("proc", os.path.basename(str(argv0)))
+        raise PermissionError("bisim sandbox: subprocesses are blocked")
+
+    subprocess.Popen.__init__ = blocked_popen  # type: ignore[assignment]
+
+    def blocked_system(cmd):
+        EFFECTS.add("proc", str(cmd).split()[0] if cmd else "?")
+        raise PermissionError("bisim sandbox: subprocesses are blocked")
+
+    os.system = blocked_system  # type: ignore[assignment]
 
 
 def _limit_memory(limit_mb: int = 512):
@@ -141,9 +239,8 @@ def main():
             out.flush()
             return
 
-    _block_network()
+    _install_effect_recorders()
     _limit_memory()
-    os.chdir(tempfile.mkdtemp(prefix="bisim-"))
     signal.signal(signal.SIGALRM, _on_alarm)
 
     def resolver(qualname: str):
@@ -164,6 +261,9 @@ def main():
     for p in job["probes"]:
         buf = io.StringIO()
         hits: set = set()
+        cwd = tempfile.mkdtemp(prefix="bisim-")  # fresh scratch directory per probe: no state leaks between probes
+        os.chdir(cwd)
+        EFFECTS.reset(cwd)
         try:
             args = uncanon(p, resolver)
             signal.setitimer(signal.ITIMER_REAL, job["timeout"])
@@ -184,6 +284,9 @@ def main():
             rec = {"ok": False, "exc": type(e).__name__}
         if buf.getvalue() and "timeout" not in rec:
             rec["out"] = buf.getvalue()
+        effects = EFFECTS.items + EFFECTS.snapshot_fs()
+        if effects and "timeout" not in rec:
+            rec["effects"] = effects
         if want_cov:
             rec["cov"] = sorted(hits)
         out.write(json.dumps(rec, sort_keys=True) + "\n")

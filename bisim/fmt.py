@@ -21,7 +21,24 @@ def describe_obs(o: dict) -> str:
         s = _val(o["value"])
     if o.get("out"):
         s += f"  [stdout: {o['out']!r}]"
+    if o.get("effects"):
+        s += "  [effects: " + ", ".join(_effect(e) for e in o["effects"][:6]) + (", …" if len(o["effects"]) > 6 else "") + "]"
     return s
+
+
+def _effect(e: list) -> str:
+    kind = e[0]
+    if kind == "open":
+        return f"open({e[2]}) {e[1]}"
+    if kind == "fs":
+        return f"fs {e[1]}={e[2][:8]}"
+    if kind == "env":
+        return f"env {e[1]}"
+    if kind == "net":
+        return f"net {':'.join(e[1:])}"
+    if kind == "proc":
+        return f"proc {e[1]}"
+    return " ".join(e)
 
 
 def _is_sequence_args(v) -> bool:

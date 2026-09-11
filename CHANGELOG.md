@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 — 2026-09-11
+
+- Effect ledger: `open`, files left in the scratch cwd (content-hashed), `os.environ` reads, and
+  blocked network/subprocess attempts are recorded in the observation (`effects`, only when non-empty).
+  Pure functions' addresses are unchanged.
+- Fresh scratch directory per probe (no state leaks between probes).
+- Clearer message when the sandbox child is killed by the time/memory budget.
+
 ## 0.3.0 — 2026-09-11
 
 - Targets: `path.py:Class.method` (one call on a fresh instance) and `path.py:Class` (seeded call
