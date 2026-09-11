@@ -229,7 +229,7 @@ def _validate_suggested(spec, raw: list) -> list[Probe]:
                 continue
             args = (tuple(entry["init"]), tuple(seq))
         else:
-            if not isinstance(entry, list) or len(entry) != len(spec.params):
+            if not isinstance(entry, list) or not (spec.required_count() <= len(entry) <= len(spec.params)):
                 continue
             args = tuple(entry)
         try:

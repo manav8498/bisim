@@ -241,6 +241,10 @@ def generate_type_probes(spec: FunctionSpec, count: int = DEFAULT_COUNT, resolve
     max_b = max((len(s.boundaries) for s in strategies), default=0)
     for j in range(max_b):
         add([s.boundaries[j % len(s.boundaries)] for s in strategies])
+    required = spec.required_count()
+    # every way of leaving out trailing defaulted parameters appears at least once
+    for n in range(required, len(strategies)):
+        add([s.boundaries[0] for s in strategies[:n]])
     if not strategies:
         add([])
         return probes
@@ -249,7 +253,10 @@ def generate_type_probes(spec: FunctionSpec, count: int = DEFAULT_COUNT, resolve
     guard = 0
     while len(probes) < count and guard < count * 20:
         guard += 1
-        add([rng.choice(pool[i]) if rng.random() < 0.6 else strategies[i].draw(rng) for i in range(len(strategies))])
+        args = [rng.choice(pool[i]) if rng.random() < 0.6 else strategies[i].draw(rng) for i in range(len(strategies))]
+        if required < len(strategies) and rng.random() < 0.3:
+            args = args[: rng.randint(required, len(strategies) - 1)]
+        add(args)
     return probes[:count]
 
 
@@ -270,10 +277,16 @@ def _rng_for(seed_text: str) -> random.Random:
     return random.Random(int(sha256_hex(seed_text)[:16], 16))
 
 
-def _draw_args(strategies: list[TypeStrategy], rng: random.Random, boundary_index: int | None = None) -> tuple:
+def _draw_args(strategies: list[TypeStrategy], rng: random.Random, boundary_index: int | None = None, required: int | None = None) -> tuple:
+    """``required`` = number of leading parameters without defaults; trailing defaulted parameters are
+    sometimes left out so the defaults themselves get exercised."""
     if boundary_index is not None:
-        return tuple(s.boundaries[boundary_index % len(s.boundaries)] for s in strategies)
-    return tuple(rng.choice(s.boundaries) if rng.random() < 0.5 else s.draw(rng) for s in strategies)
+        args = tuple(s.boundaries[boundary_index % len(s.boundaries)] for s in strategies)
+    else:
+        args = tuple(rng.choice(s.boundaries) if rng.random() < 0.5 else s.draw(rng) for s in strategies)
+    if required is not None and required < len(strategies) and boundary_index is None and rng.random() < 0.4:
+        return args[: rng.randint(required, len(strategies) - 1)]
+    return args
 
 
 def generate_method_probes(cls: ClassSpec, method: str, count: int = DEFAULT_COUNT, resolver=None) -> list[Probe]:
@@ -282,6 +295,7 @@ def generate_method_probes(cls: ClassSpec, method: str, count: int = DEFAULT_COU
         raise Unsupported(f"{cls.name}.{method}: not a supported method")
     init_s = [strategy_for(t, resolver) for _, t in cls.init_params]
     meth_s = [strategy_for(t, resolver) for _, t in cls.methods[method].params]
+    ireq, mreq = cls.init_required_count(), cls.methods[method].required_count()
     rng = _rng_for(class_sig_hash(cls, method) + "|method")
     probes, seen = [], set()
 
@@ -294,10 +308,14 @@ def generate_method_probes(cls: ClassSpec, method: str, count: int = DEFAULT_COU
     max_b = max([len(s.boundaries) for s in init_s + meth_s], default=1)
     for j in range(max_b):
         add(_draw_args(init_s, rng, j), _draw_args(meth_s, rng, j))
+    for n in range(ireq, len(init_s)):
+        add(tuple(s.boundaries[0] for s in init_s[:n]), _draw_args(meth_s, rng, 0))
+    for n in range(mreq, len(meth_s)):
+        add(_draw_args(init_s, rng, 0), tuple(s.boundaries[0] for s in meth_s[:n]))
     guard = 0
     while len(probes) < count and guard < count * 20:
         guard += 1
-        add(_draw_args(init_s, rng), _draw_args(meth_s, rng))
+        add(_draw_args(init_s, rng, required=ireq), _draw_args(meth_s, rng, required=mreq))
     return probes[:count]
 
 
@@ -308,6 +326,8 @@ def generate_sequence_probes(cls: ClassSpec, count: int = DEFAULT_COUNT, max_len
         raise Unsupported(f"{cls.name}: no supported public methods to probe")
     init_s = [strategy_for(t, resolver) for _, t in cls.init_params]
     meth_s = {m: [strategy_for(t, resolver) for _, t in cls.methods[m].params] for m in names}
+    ireq = cls.init_required_count()
+    mreq = {m: cls.methods[m].required_count() for m in names}
     rng = _rng_for(class_sig_hash(cls) + "|sequence")
     probes, seen = [], set()
 
@@ -327,6 +347,6 @@ def generate_sequence_probes(cls: ClassSpec, count: int = DEFAULT_COUNT, max_len
     while len(probes) < count and guard < count * 20:
         guard += 1
         length = rng.randint(1, max_len)
-        calls = [(m, _draw_args(meth_s[m], rng)) for m in (rng.choice(names) for _ in range(length))]
-        add(_draw_args(init_s, rng), calls)
+        calls = [(m, _draw_args(meth_s[m], rng, required=mreq[m])) for m in (rng.choice(names) for _ in range(length))]
+        add(_draw_args(init_s, rng, required=ireq), calls)
     return probes[:count]

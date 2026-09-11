@@ -47,7 +47,7 @@ def build_reach_prompt(target, missed: list[int], max_inputs: int, branches: lis
 def to_probe_args(target, entry):
     """Convert one model-proposed entry into probe args for the target kind, or None if malformed."""
     if target.kind == "function":
-        if isinstance(entry, list) and len(entry) == len(target.spec.params):
+        if isinstance(entry, list) and target.spec.required_count() <= len(entry) <= len(target.spec.params):
             return tuple(entry)
         return None
     if not isinstance(entry, dict) or not isinstance(entry.get("init"), list) or len(entry["init"]) != len(target.spec.init_params):

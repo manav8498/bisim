@@ -182,8 +182,8 @@ def _witness_args(t, args) -> tuple:
         if args.input is None:
             raise CliError("--input is required for a function target")
         raw = lst(args.input, "--input")
-        if len(raw) != len(t.spec.params):
-            raise CliError(f"--input has {len(raw)} argument(s) but {t.name} takes {len(t.spec.params)}")
+        if not (t.spec.required_count() <= len(raw) <= len(t.spec.params)):
+            raise CliError(f"--input has {len(raw)} argument(s) but {t.name} takes {t.spec.required_count()} to {len(t.spec.params)}")
         return tuple(raw)
     init = lst(args.init, "--init") if args.init is not None else []
     if len(init) != len(t.spec.init_params):

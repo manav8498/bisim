@@ -23,9 +23,15 @@ class FunctionSpec:
     lineno: int
     lines: list[int] = field(default_factory=list)  # executable statement lines inside the body
     decisions: list[dict] = field(default_factory=list)  # {line, kind, body: [lines]} for if/while/for
+    defaults: dict[str, str] = field(default_factory=dict)  # parameter name -> default expression source
 
     def signature_str(self) -> str:
-        return "(" + ", ".join(f"{n}: {t}" for n, t in self.params) + f") -> {self.returns}"
+        parts = [f"{n}: {t}" + (f" = {self.defaults[n]}" if n in self.defaults else "") for n, t in self.params]
+        return "(" + ", ".join(parts) + f") -> {self.returns}"
+
+    def required_count(self) -> int:
+        """Number of leading parameters without a default."""
+        return sum(1 for n, _ in self.params if n not in self.defaults)
 
 
 def _spec_from_def(node, src: str, path: str) -> FunctionSpec:
@@ -40,14 +46,18 @@ def _spec_from_def(node, src: str, path: str) -> FunctionSpec:
         if isinstance(sub, (ast.Yield, ast.YieldFrom)):
             raise Unsupported(f"{node.name}: generators are not supported")
     params: list[tuple[str, str]] = []
-    for arg in a.posonlyargs + a.args:
+    positional = a.posonlyargs + a.args
+    for arg in positional:
         if arg.annotation is None:
             raise Unsupported(f"{node.name}: missing type hint for parameter '{arg.arg}'")
         params.append((arg.arg, ast.unparse(arg.annotation)))
     if node.returns is None:
         raise Unsupported(f"{node.name}: missing return type hint")
+    defaults = {}
+    for arg, d in zip(positional[len(positional) - len(a.defaults):], a.defaults):
+        defaults[arg.arg] = ast.unparse(d)
     source = ast.get_source_segment(src, node) or ""
-    return FunctionSpec(node.name, params, ast.unparse(node.returns), source, path, node.lineno, _executable_lines(node), _decisions(node))
+    return FunctionSpec(node.name, params, ast.unparse(node.returns), source, path, node.lineno, _executable_lines(node), _decisions(node), defaults)
 
 
 def _decisions(node) -> list[dict]:
@@ -98,7 +108,11 @@ class ClassSpec:
     lineno: int
     lines: list[int] = field(default_factory=list)
     decisions: list[dict] = field(default_factory=list)
-    kinds: dict[str, str] = field(default_factory=dict)  # name → "method" | "property" | "static" | "classmethod"
+    kinds: dict[str, str] = field(default_factory=dict)  # name -> "method" | "property" | "static" | "classmethod"
+    init_defaults: dict[str, str] = field(default_factory=dict)
+
+    def init_required_count(self) -> int:
+        return sum(1 for n, _ in self.init_params if n not in self.init_defaults)
 
     def properties(self) -> list[str]:
         return sorted(m for m, k in self.kinds.items() if k == "property")
@@ -199,6 +213,7 @@ def _class_spec(node: ast.ClassDef, src: str, path: str) -> ClassSpec:
                 continue
         elif isinstance(item, ast.AsyncFunctionDef):
             continue
+    init_defaults: dict[str, str] = {}
     if is_dc:
         for item in node.body:
             if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
@@ -206,17 +221,22 @@ def _class_spec(node: ast.ClassDef, src: str, path: str) -> ClassSpec:
                 if t.startswith("ClassVar"):
                     continue
                 init_params.append((item.target.id, t))
+                if item.value is not None:
+                    init_defaults[item.target.id] = ast.unparse(item.value)
     elif init_node is not None:
         a = init_node.args
         if a.vararg or a.kwarg or a.kwonlyargs:
             raise Unsupported(f"{node.name}.__init__: *args/**kwargs/keyword-only parameters are not supported")
-        for arg in (a.posonlyargs + a.args)[1:]:
+        positional = (a.posonlyargs + a.args)[1:]
+        for arg in positional:
             if arg.annotation is None:
                 raise Unsupported(f"{node.name}.__init__: missing type hint for parameter '{arg.arg}'")
             init_params.append((arg.arg, ast.unparse(arg.annotation)))
+        for arg, d in zip(positional[len(positional) - len(a.defaults):], a.defaults):
+            init_defaults[arg.arg] = ast.unparse(d)
     lines = sorted({l for item in node.body if isinstance(item, ast.FunctionDef) for l in _executable_lines(item)})
     decisions = sorted((d for item in node.body if isinstance(item, ast.FunctionDef) for d in _decisions(item)), key=lambda d: d["line"])
-    return ClassSpec(node.name, init_params, methods, is_dc, ast.get_source_segment(src, node) or "", path, node.lineno, lines, decisions, kinds)
+    return ClassSpec(node.name, init_params, methods, is_dc, ast.get_source_segment(src, node) or "", path, node.lineno, lines, decisions, kinds, init_defaults)
 
 
 def extract_class(path: str, name: str) -> ClassSpec:
