@@ -10,7 +10,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Manav Patel" }]
 keywords = ["testing", "verification", "code-review", "ai-generated-code", "content-addressing", "behavioral-diff", "intent"]
 classifiers = [
-  "Development Status :: 5 - Production/Stable",
+  "Development Status :: 4 - Beta",
   "Environment :: Console",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
