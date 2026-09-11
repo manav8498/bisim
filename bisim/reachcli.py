@@ -25,7 +25,7 @@ def run_reach(args, target) -> int:
         return 0
     print(f"{fn}: lines never reached before: {', '.join(map(str, r.missed_before))}")
     for a in r.inputs:
-        print(f"  + {tuple(a)!r}")
+        print(f"  + {tuple(a)!r}" if isinstance(a, list) else f"  + {a}")
     print(f"  added {r.added} suggested probe(s), rejected {r.rejected} proposal(s)")
     cov = r.coverage_after or {}
     still = f"; still unreached: {', '.join(map(str, r.missed_after))}" if r.missed_after else ""
