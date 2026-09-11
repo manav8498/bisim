@@ -1,0 +1,258 @@
+"""bisim command line: hash · diff · check · mint · witness · lookup."""
+from __future__ import annotations
+
+import argparse
+import dataclasses
+import json
+import os
+import sys
+
+from . import __version__
+from .canon import canon, parse_literal
+from .core import DiffResult, diff_functions, find_root, hash_function
+from .extract import NotFound, Unsupported, extract_function
+from .fmt import clip, describe_obs, fmt_args
+from .probes import Probe
+from .sandbox import DEFAULT_TIMEOUT, Nondeterministic, SandboxError, observe
+from .store import lookup, push
+from .witness import add_witness, load_ledger, save_ledger
+
+EXIT_SAME, EXIT_CHANGED, EXIT_WITNESS, EXIT_REFUSED, EXIT_ERROR = 0, 1, 2, 3, 4
+
+
+class CliError(Exception):
+    pass
+
+
+def _target(s: str) -> tuple[str, str]:
+    if ":" not in s:
+        raise CliError(f"target must look like path.py:function, got {s!r}")
+    path, fn = s.rsplit(":", 1)
+    if not fn.isidentifier():
+        raise CliError(f"target must look like path.py:function, got {s!r}")
+    if not os.path.exists(path):
+        raise CliError(f"no such file: {path}")
+    return path, fn
+
+
+def _root(args) -> str:
+    return str(find_root(args.root) if args.root else find_root())
+
+
+def _emit_json(obj) -> None:
+    print(json.dumps(obj, indent=1, sort_keys=True, ensure_ascii=False))
+
+
+# --- commands ----------------------------------------------------------------
+
+def cmd_hash(args) -> int:
+    path, fn = _target(args.target)
+    r = hash_function(path, fn, root=_root(args), timeout=args.timeout, count=args.count)
+    m = r.manifest
+    if args.push:
+        push(_root(args), m, r.spec.source, {"name": fn, "path": os.path.abspath(path), "witness_count": m.counts()["witness"]})
+    if args.json:
+        _emit_json({"address": m.address, "short": m.short(), "counts": m.counts(), "warnings": r.warnings, "manifest": m.to_dict()})
+    else:
+        c = m.counts()
+        print(f"{m.address}")
+        print(f"  {fn}{r.spec.signature_str()}")
+        print(f"  probes={len(m.probes)} (type={c['type']} witness={c['witness']} suggested={c['suggested']})  python={m.runtime['python']}  probegen={m.probegen}")
+        for w in r.warnings:
+            print(f"  warning: {w}")
+        if args.push:
+            print("  pushed to registry")
+    return EXIT_SAME
+
+
+def _diff_to_dict(d: DiffResult) -> dict:
+    return {
+        "same": d.same, "signature_changed": d.signature_changed, "old_address": d.old_address,
+        "new_address": d.new_address, "exit_code": d.exit_code, "warnings": d.warnings,
+        "probe_count": d.probe_count, "changes": [dataclasses.asdict(c) for c in d.changes],
+    }
+
+
+def print_diff(d: DiffResult, label_old: str = "old", label_new: str = "new") -> None:
+    if d.signature_changed:
+        print(f"SIGNATURE CHANGED  {d.warnings[0]}")
+        return
+    if d.same:
+        print(f"SAME  {d.old_address}  ({d.probe_count} probes agree)")
+    else:
+        print(f"CHANGED  {label_old}={d.old_address[:17]}…  {label_new}={d.new_address[:17]}…")
+        print(f"  changed on {len(d.changes)} of {d.probe_count} inputs ({d.witnessed_changes} witnessed)")
+        ordered = sorted(d.changes, key=lambda c: (c.kind != "witness", len(fmt_args(c.args))))
+        rows = [(fmt_args(c.args), c.kind, describe_obs(c.old), describe_obs(c.new)) for c in ordered]
+        w0 = min(max(len(r[0]) for r in rows), 40)
+        w2 = min(max(len(r[2]) for r in rows), 30)
+        print(f"  {'input'.ljust(w0)}  {'kind'.ljust(9)}  {label_old.ljust(w2)}  {label_new}")
+        for a, k, o, n in rows:
+            flag = "!" if k == "witness" else " "
+            print(f"{flag} {clip(a, w0).ljust(w0)}  {k.ljust(9)}  {clip(o, w2).ljust(w2)}  {clip(n, 40)}")
+    for w in d.warnings:
+        print(f"  warning: {w}")
+
+
+def cmd_diff(args) -> int:
+    op, ofn = _target(args.old)
+    np_, nfn = _target(args.new)
+    d = diff_functions(op, ofn, np_, nfn, root=_root(args), timeout=args.timeout)
+    if args.json:
+        _emit_json(_diff_to_dict(d))
+    else:
+        print_diff(d)
+    return d.exit_code
+
+
+def cmd_witness(args) -> int:
+    path, fn = _target(args.target)
+    root = _root(args)
+    spec = extract_function(path, fn)
+    ledger = load_ledger(root, path, fn, spec)
+    ledger.signature = spec.signature_str()
+    if args.witness_cmd == "list":
+        if args.json:
+            _emit_json({"function": fn, "signature": ledger.signature, "witnesses": [dataclasses.asdict(w) for w in ledger.witnesses],
+                        "suggested": ledger.suggested, "excluded": ledger.excluded})
+        else:
+            print(f"{fn}{ledger.signature}: {len(ledger.witnesses)} witness(es), {len(ledger.suggested)} suggested, {len(ledger.excluded)} excluded")
+            for w in ledger.witnesses:
+                note = f"   # {w.note}" if w.note else ""
+                print(f"  {fmt_args(w.args)} -> {describe_obs(w.expect)}{note}")
+        return EXIT_SAME
+    # add
+    raw = parse_literal(args.input)
+    if not isinstance(raw, (list, tuple)):
+        raise CliError("--input must be a JSON/Python list of arguments, e.g. '[1, 2]'")
+    if len(raw) != len(spec.params):
+        raise CliError(f"--input has {len(raw)} argument(s) but {fn} takes {len(spec.params)}")
+    if args.run:
+        expect = observe(path, fn, [Probe(tuple(raw), "witness")], args.timeout)[0]
+    elif args.raises:
+        expect = {"ok": False, "exc": args.raises}
+    elif args.expect is not None:
+        expect = {"ok": True, "value": canon(parse_literal(args.expect))}
+    else:
+        raise CliError("give one of --expect <literal>, --raises <ExceptionName>, or --run")
+    w = add_witness(ledger, list(raw), expect, args.note or "", "manual")
+    p = save_ledger(root, path, fn, ledger)
+    if args.json:
+        _emit_json({"witness": dataclasses.asdict(w), "ledger": str(p)})
+    else:
+        print(f"witness recorded: {fmt_args(w.args)} -> {describe_obs(w.expect)}")
+        print(f"  ledger: {p}")
+    return EXIT_SAME
+
+
+def cmd_lookup(args) -> int:
+    got = lookup(_root(args), args.address)
+    if got is None:
+        raise NotFound(f"address not found in registry: {args.address}")
+    m = got["manifest"]
+    if args.json:
+        _emit_json({"address": m.address, "meta": got["meta"], "source": got["source"], "counts": m.counts()})
+    else:
+        print(f"{m.address}")
+        print(f"  {m.function['name']}({', '.join(f'{n}: {t}' for n, t in m.function['params'])}) -> {m.function['returns']}")
+        for k, v in sorted(got["meta"].items()):
+            print(f"  {k}: {v}")
+        print()
+        print(got["source"].rstrip())
+    return EXIT_SAME
+
+
+def cmd_check(args) -> int:  # implemented in Task 9
+    from .gitcheck import run_check
+
+    return run_check(args)
+
+
+def cmd_mint(args) -> int:  # implemented in Task 11
+    from .mintcli import run_mint
+
+    return run_mint(args)
+
+
+# --- parser ------------------------------------------------------------------
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="bisim", description="Behavior-addressed code: address functions by what they do.")
+    p.add_argument("--version", action="version", version=f"bisim {__version__}")
+    sub = p.add_subparsers(dest="cmd")
+
+    def common(sp):
+        sp.add_argument("--root", help="project root (default: nearest .bisim or .git)")
+        sp.add_argument("--json", action="store_true", help="machine-readable output")
+        sp.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="per-probe timeout in seconds")
+
+    h = sub.add_parser("hash", help="compute a function's behavioral address")
+    h.add_argument("target", help="path.py:function")
+    h.add_argument("--push", action="store_true", help="store the implementation in the local registry")
+    h.add_argument("--count", type=int, default=48, help="number of generated type probes")
+    common(h)
+    h.set_defaults(func=cmd_hash)
+
+    d = sub.add_parser("diff", help="compare two functions by behavior")
+    d.add_argument("old", help="path.py:function")
+    d.add_argument("new", help="path.py:function")
+    common(d)
+    d.set_defaults(func=cmd_diff)
+
+    c = sub.add_parser("check", help="behavioral gate: every changed function in the git worktree vs a base")
+    c.add_argument("--base", default="HEAD")
+    common(c)
+    c.set_defaults(func=cmd_check)
+
+    m = sub.add_parser("mint", help="elicit intent: generate candidates, ask about the inputs where they disagree")
+    m.add_argument("--intent", required=True)
+    m.add_argument("--sig", required=True, help='e.g. "def median(xs: list[float]) -> float"')
+    m.add_argument("--out", required=True, help="where to write the chosen implementation")
+    m.add_argument("--k", type=int, default=6)
+    m.add_argument("--max-questions", type=int, default=8)
+    m.add_argument("--model", default=None)
+    m.add_argument("--tests-dir", default=None, help="also emit pytest tests from the witnesses")
+    common(m)
+    m.set_defaults(func=cmd_mint)
+
+    w = sub.add_parser("witness", help="manage the human intent ledger")
+    ws = w.add_subparsers(dest="witness_cmd", required=True)
+    wa = ws.add_parser("add")
+    wa.add_argument("target")
+    wa.add_argument("--input", required=True, help="argument list, e.g. '[1, 2]'")
+    wa.add_argument("--expect", help="expected return value as a literal")
+    wa.add_argument("--raises", help="expected exception class name")
+    wa.add_argument("--run", action="store_true", help="record whatever the current implementation does")
+    wa.add_argument("--note", default="")
+    common(wa)
+    wa.set_defaults(func=cmd_witness)
+    wl = ws.add_parser("list")
+    wl.add_argument("target")
+    common(wl)
+    wl.set_defaults(func=cmd_witness)
+
+    lk = sub.add_parser("lookup", help="find a witnessed implementation by address")
+    lk.add_argument("address")
+    common(lk)
+    lk.set_defaults(func=cmd_lookup)
+    return p
+
+
+def main(argv=None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if not getattr(args, "func", None):
+        parser.print_help(sys.stderr)
+        return EXIT_ERROR
+    try:
+        return args.func(args)
+    except (Unsupported, Nondeterministic) as e:
+        print(f"refused: {e}", file=sys.stderr)
+        return EXIT_REFUSED
+    except (CliError, NotFound, SandboxError, FileNotFoundError, ValueError, SyntaxError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return EXIT_ERROR
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
