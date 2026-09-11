@@ -240,7 +240,9 @@ def mint(intent: str, spec: FunctionSpec, client: CandidateClient, answerer: Ans
             expect = ans.value
         else:
             expect = {"ok": True, "value": canon(ans.value)}
-        add_witness(ledger, list(probes[j].args), expect, "", "mint")
+        rejected = [describe_obs(o.obs) for o in options if obs_hash(o.obs) != obs_hash(expect)]
+        note = ("rejected: " + " | ".join(rejected)) if rejected else ""
+        add_witness(ledger, list(probes[j].args), expect, note, "mint")
         save_ledger(root, out_path, spec.name, ledger)
         probes[j] = Probe(probes[j].args, "witness")
         alive = [i for i in alive if obs_hash(obs_by_cand[i][j]) == obs_hash(expect)]

@@ -19,6 +19,7 @@ class Witness:
     note: str = ""
     source: str = "manual"  # "manual" | "mint"
     at: str = ""
+    display: str = ""  # human-readable rendering, derived; never used for matching
 
 
 @dataclass
@@ -65,8 +66,29 @@ def save_ledger(root, module_path: str, fn: str, ledger: Ledger) -> Path:
         "suggested": ledger.suggested,
         "excluded": ledger.excluded,
     }
-    p.write_text(json.dumps(d, indent=1, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+    p.write_text(pretty(d) + "\n", encoding="utf-8")
     return p
+
+
+def _is_canon_node(x) -> bool:
+    return isinstance(x, list) and len(x) in (1, 2, 3) and isinstance(x[0], str) and len(x[0]) == 1
+
+
+def pretty(obj, level: int = 0) -> str:
+    """JSON with indentation, but canonical value nodes stay on one line."""
+    pad = " " * level
+    if isinstance(obj, dict):
+        if not obj:
+            return "{}"
+        items = [f'{pad} {json.dumps(k, ensure_ascii=False)}: {pretty(v, level + 1)}' for k, v in sorted(obj.items())]
+        return "{\n" + ",\n".join(items) + "\n" + pad + "}"
+    if isinstance(obj, list):
+        if not obj:
+            return "[]"
+        if _is_canon_node(obj):
+            return dumps(obj)
+        return "[\n" + ",\n".join(f"{pad} {pretty(v, level + 1)}" for v in obj) + "\n" + pad + "]"
+    return json.dumps(obj, ensure_ascii=False)
 
 
 def _now() -> str:
@@ -78,9 +100,15 @@ def add_witness(ledger: Ledger, args, expect: dict, note: str = "", source: str 
     c = args if (isinstance(args, list) and args and args[0] == "l" and len(args) == 2) else canon(list(args))
     key = dumps(c)
     ledger.witnesses = [w for w in ledger.witnesses if dumps(w.args) != key]
-    w = Witness(c, expect, note, source, _now())
+    w = Witness(c, expect, note, source, _now(), _display(c, expect))
     ledger.witnesses.append(w)
     return w
+
+
+def _display(c, expect) -> str:
+    from .fmt import describe_obs, fmt_args
+
+    return f"{fmt_args(c)} -> {describe_obs(expect)}"
 
 
 def ledger_probes(ledger: Ledger, resolver=None) -> list[Probe]:
