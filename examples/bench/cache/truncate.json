@@ -1,0 +1,56 @@
+{
+ "0": {
+  "candidates": [
+   "def truncate(s: str, n: int) -> str:\n    \"\"\"Hard cut at n code points, then append '...' (ellipsis does NOT count toward n).\"\"\"\n    if n < 0:\n        raise ValueError(\"n must be non-negative\")\n    if len(s) <= n:\n        return s\n    return s[:n] + \"...\"\n",
+   "def truncate(s: str, n: int) -> str:\n    \"\"\"Result never exceeds n; uses the single-char ellipsis U+2026; negative n is clamped to 0.\"\"\"\n    n = max(n, 0)\n    if len(s) <= n:\n        return s\n    if n == 0:\n        return \"\"\n    return s[: n - 1] + \"\\u2026\"\n",
+   "def truncate(s: str, n: int) -> str:\n    \"\"\"Result never exceeds n using three ASCII dots; if '...' cannot fit, return the bare prefix.\"\"\"\n    if n < 0:\n        raise ValueError(\"n must be non-negative\")\n    if len(s) <= n:\n        return s\n    ellipsis = \"...\"\n    if n < len(ellipsis):\n        return s[:n]\n    return s[: n - len(ellipsis)] + ellipsis\n",
+   "import unicodedata\n\n\ndef truncate(s: str, n: int) -> str:\n    \"\"\"Django Truncator.chars semantics: NFC-normalize, combining marks do not count,\n    the single-char U+2026 counts toward n, and an ellipsis is always emitted on a cut\n    (even when n <= 0). The normalized text is returned even when no cut is needed.\"\"\"\n    text = unicodedata.normalize(\"NFC\", s)\n    ellipsis = \"\\u2026\"\n    truncate_len = n\n    for ch in ellipsis:\n        if not unicodedata.combining(ch):\n            truncate_len -= 1\n            if truncate_len == 0:\n                break\n    s_len = 0\n    end_index = None\n    for i, ch in enumerate(text):\n        if unicodedata.combining(ch):\n            continue\n        s_len += 1\n        if end_index is None and s_len > truncate_len:\n            end_index = i\n        if s_len > n:\n            return text[: end_index or 0] + ellipsis\n    return text\n",
+   "def truncate(s: str, n: int) -> str:\n    \"\"\"Cut on a word boundary when possible (textwrap.shorten-like); '...' counts toward n;\n    raises if n is negative or too small to hold the ellipsis.\"\"\"\n    ellipsis = \"...\"\n    if n < 0:\n        raise ValueError(\"n must be non-negative\")\n    if len(s) <= n:\n        return s\n    if n < len(ellipsis):\n        raise ValueError(\"placeholder too large for max width\")\n    budget = n - len(ellipsis)\n    cut = s[:budget]\n    if not s[budget].isspace():\n        idx = max((i for i, ch in enumerate(cut) if ch.isspace()), default=-1)\n        if idx >= 0:\n            cut = cut[:idx]\n    return cut.rstrip() + ellipsis\n",
+   "def truncate(s: str, n: int) -> str:\n    \"\"\"'...' counts toward n; trailing whitespace before the ellipsis is stripped;\n    negative n clamps to 0; if '...' cannot fit, emit as many dots as fit.\"\"\"\n    ellipsis = \"...\"\n    n = max(n, 0)\n    if len(s) <= n:\n        return s\n    if n < len(ellipsis):\n        return ellipsis[:n]\n    return s[: n - len(ellipsis)].rstrip() + ellipsis\n"
+  ],
+  "notes": [
+   "Whether the ellipsis counts toward the n-character budget (candidate 1 appends beyond n; the rest keep the result within n).",
+   "Three ASCII dots '...' vs the single Unicode character U+2026 (affects both output and how much text survives).",
+   "When n is smaller than the ellipsis: return the bare prefix, a partial ellipsis, the full ellipsis anyway, or raise.",
+   "Negative n: raise ValueError vs clamp to 0 vs Django-style 'always emit ellipsis'.",
+   "n == 0 on a non-empty string: '' vs '...' vs U+2026.",
+   "Counting code points vs user-perceived characters (combining marks free, NFC normalization), and whether normalization leaks into the returned string.",
+   "Whether to back up to a word boundary rather than cutting mid-word.",
+   "Whether trailing whitespace just before the ellipsis is stripped."
+  ],
+  "suggested_args": [
+   [
+    "hello world",
+    10
+   ],
+   [
+    "hello world foo",
+    9
+   ],
+   [
+    "hello",
+    4
+   ],
+   [
+    "hello",
+    2
+   ],
+   [
+    "hello",
+    0
+   ],
+   [
+    "hello",
+    -1
+   ],
+   [
+    "café latte",
+    5
+   ],
+   [
+    "ééé",
+    3
+   ]
+  ]
+ }
+}

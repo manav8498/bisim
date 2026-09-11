@@ -53,6 +53,7 @@ class Question:
     probe: Probe
     options: list[Option]
     remaining_classes: int
+    confirm: bool = False  # True: the survivor's behavior on a once-contested input, shown for approval
 
 
 @dataclass
@@ -88,7 +89,10 @@ class ScriptedAnswerer:
 
 class ConsoleAnswerer:
     def ask(self, q: Question) -> Answer:
-        print(f"\nInput: {tuple(q.probe.args)!r}   ({q.remaining_classes} behaviors still possible)")
+        if q.confirm:
+            print(f"\nConfirm — input: {tuple(q.probe.args)!r}   (the chosen implementation gives [0]; other candidates disagreed)")
+        else:
+            print(f"\nInput: {tuple(q.probe.args)!r}   ({q.remaining_classes} behaviors still possible)")
         for i, o in enumerate(q.options):
             print(f"  [{i}] {describe_obs(o.obs)}    ({o.count} candidate{'s' if o.count != 1 else ''})")
         print("  o:<literal>  give the correct output    x  invalid input (precondition)    q  stop asking")
@@ -127,6 +131,23 @@ def select_probe(probes: list[Probe], obs_by_cand: list[list[dict]], alive: list
         ent = -sum((k / n) * math.log(k / n) for k in groups.values())
         # ties: prefer human/model-chosen inputs over generated boundaries, then the simplest input
         key = (len(groups), round(ent, 9), KIND_PREF[p.kind], -len(canon_json(list(p.args))))
+        if best_key is None or key > best_key:
+            best, best_key = j, key
+    return best
+
+
+def select_confirmation(probes: list[Probe], obs_by_cand: list[list[dict]], survivor: int, skip: set[str]) -> int | None:
+    """Index of the most-contested probe (over every candidate ever seen) whose survivor behavior
+    is not yet witnessed, or None."""
+    best, best_key = None, None
+    for j, p in enumerate(probes):
+        if p.id in skip or p.kind == "witness":
+            continue
+        mine = obs_hash(obs_by_cand[survivor][j])
+        dissent = sum(1 for o in obs_by_cand if obs_hash(o[j]) != mine)
+        if dissent == 0:
+            continue
+        key = (dissent, KIND_PREF[p.kind], -len(canon_json(list(p.args))))
         if best_key is None or key > best_key:
             best, best_key = j, key
     return best
@@ -184,7 +205,8 @@ class MintResult:
 
 
 def mint(intent: str, spec: FunctionSpec, client: CandidateClient, answerer: Answerer, root, out_path: str,
-         k: int = 6, max_questions: int = 8, timeout: float = DEFAULT_TIMEOUT, tests_dir: str | None = None) -> MintResult:
+         k: int = 6, max_questions: int = 8, timeout: float = DEFAULT_TIMEOUT, tests_dir: str | None = None,
+         max_confirm: int = 3, max_regen: int = 2) -> MintResult:
     out_path = os.path.abspath(out_path)
     spec.module_path = out_path
     ledger = load_ledger(root, out_path, spec.name, spec)
@@ -204,30 +226,61 @@ def mint(intent: str, spec: FunctionSpec, client: CandidateClient, answerer: Ans
     if not cands:
         raise SandboxError("no candidate could be executed")
     alive = [i for i in range(len(cands)) if _consistent(obs_by_cand[i], probes, ledger)]
-    asked = 0
-    regenerated = False
+    asked = confirmations = regens = 0
+    declined: set[str] = set()  # confirmation probes the user quit on
 
-    while asked < max_questions and alive:
+    def regenerate() -> list[int]:
+        nonlocal cands, obs_by_cand
+        gen2 = client.generate(intent, spec, k, ledger.witnesses)
+        more, more_obs = _observe_candidates(gen2.candidates, spec, probes, timeout)
+        cands += more
+        obs_by_cand += more_obs
+        return [i for i in range(len(cands)) if _consistent(obs_by_cand[i], probes, ledger)]
+
+    while asked < max_questions:
+        if not alive:
+            if regens >= max_regen:
+                break
+            regens += 1
+            alive = regenerate()
+            if not alive:
+                continue
         classes: dict[str, list[int]] = {}
         for i in alive:
             classes.setdefault(_address_of(spec, probes, obs_by_cand[i]), []).append(i)
-        if len(classes) <= 1:
-            break
-        j = select_probe(probes, obs_by_cand, alive)
-        if j is None:
-            break
+        confirm = False
+        if len(classes) > 1:
+            j = select_probe(probes, obs_by_cand, alive)
+            if j is None:
+                break
+            pool = alive
+        else:
+            if confirmations >= max_confirm:
+                break
+            j = select_confirmation(probes, obs_by_cand, alive[0], declined)
+            if j is None:
+                break
+            confirm = True
+            pool = list(range(len(cands)))  # show every behavior ever proposed for this input
         groups: dict[str, Option] = {}
-        for i in alive:
+        for i in pool:
             h = obs_hash(obs_by_cand[i][j])
             if h in groups:
                 groups[h].count += 1
             else:
                 groups[h] = Option(obs_by_cand[i][j], 1, i)
-        options = sorted(groups.values(), key=lambda o: (-o.count, obs_hash(o.obs)))
-        ans = answerer.ask(Question(probes[j], options, len(classes)))
-        asked += 1
+        survivor_hash = obs_hash(obs_by_cand[alive[0]][j])
+        options = sorted(groups.values(), key=lambda o: (obs_hash(o.obs) != survivor_hash, -o.count, obs_hash(o.obs)))
+        ans = answerer.ask(Question(probes[j], options, len(classes), confirm))
         if ans.kind == "quit":
+            if confirm:
+                declined.add(probes[j].id)
+                confirmations += 1
+                continue
             break
+        asked += 1
+        if confirm:
+            confirmations += 1
         if ans.kind == "exclude":
             ledger.excluded.append({"args": canon(list(probes[j].args)), "reason": "precondition"})
             save_ledger(root, out_path, spec.name, ledger)
@@ -241,18 +294,11 @@ def mint(intent: str, spec: FunctionSpec, client: CandidateClient, answerer: Ans
         else:
             expect = {"ok": True, "value": canon(ans.value)}
         rejected = [describe_obs(o.obs) for o in options if obs_hash(o.obs) != obs_hash(expect)]
-        note = ("rejected: " + " | ".join(rejected)) if rejected else ""
+        note = ("confirmed; rejected: " if confirm else "rejected: ") + " | ".join(rejected) if rejected else ("confirmed" if confirm else "")
         add_witness(ledger, list(probes[j].args), expect, note, "mint")
         save_ledger(root, out_path, spec.name, ledger)
         probes[j] = Probe(probes[j].args, "witness")
         alive = [i for i in alive if obs_hash(obs_by_cand[i][j]) == obs_hash(expect)]
-        if not alive and not regenerated:
-            regenerated = True
-            gen2 = client.generate(intent, spec, k, ledger.witnesses)
-            more, more_obs = _observe_candidates(gen2.candidates, spec, probes, timeout)
-            cands += more
-            obs_by_cand += more_obs
-            alive = [i for i in range(len(cands)) if _consistent(obs_by_cand[i], probes, ledger)]
 
     if not alive:
         raise SandboxError("no candidate matches the witnessed behavior; witnesses were saved to the ledger")

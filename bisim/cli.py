@@ -222,6 +222,7 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--out", required=True, help="where to write the chosen implementation")
     m.add_argument("--k", type=int, default=6)
     m.add_argument("--max-questions", type=int, default=8)
+    m.add_argument("--confirm", type=int, default=3, help="after convergence, confirm up to N once-contested inputs")
     m.add_argument("--model", default=None)
     m.add_argument("--client", choices=["auto", "sdk", "claude-code"], default="auto", help="how to reach the model")
     m.add_argument("--tests-dir", default=None, help="also emit pytest tests from the witnesses")

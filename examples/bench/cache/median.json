@@ -1,0 +1,65 @@
+{
+ "0": {
+  "candidates": [
+   "def median(xs: list[float]) -> float:\n    n = len(xs)\n    if n == 0:\n        raise ValueError(\"median of empty list\")\n    s = sorted(xs)\n    mid = n // 2\n    if n % 2 == 1:\n        return float(s[mid])\n    return (s[mid - 1] + s[mid]) / 2\n",
+   "def median(xs: list[float]) -> float:\n    if not xs:\n        raise ValueError(\"median of empty list\")\n    s = sorted(xs)\n    return float(s[(len(s) - 1) // 2])\n",
+   "import math\n\n\ndef median(xs: list[float]) -> float:\n    clean = sorted(float(x) for x in xs if not math.isnan(x))\n    if not clean:\n        return math.nan\n    n = len(clean)\n    mid = n // 2\n    if n % 2:\n        return clean[mid]\n    return (clean[mid - 1] + clean[mid]) / 2\n",
+   "import math\n\n\ndef median(xs: list[float]) -> float:\n    if not xs:\n        return math.nan\n    if any(math.isnan(x) for x in xs):\n        return math.nan\n    s = sorted(xs)\n    n = len(s)\n    mid = n // 2\n    if n % 2:\n        return float(s[mid])\n    return (s[mid - 1] + s[mid]) / 2\n",
+   "import math\nfrom numbers import Real\n\n\ndef median(xs: list[float]) -> float:\n    if not xs:\n        raise ValueError(\"median of empty list\")\n    for x in xs:\n        if isinstance(x, bool) or not isinstance(x, Real):\n            raise TypeError(f\"non-numeric element: {x!r}\")\n        if math.isnan(x):\n            raise ValueError(\"NaN in input\")\n    s = sorted(float(x) for x in xs)\n    n = len(s)\n    mid = n // 2\n    if n % 2:\n        return s[mid]\n    lo, hi = s[mid - 1], s[mid]\n    return lo + (hi - lo) / 2\n",
+   "def median(xs: list[float]) -> float:\n    if not xs:\n        return 0.0\n    s = sorted(xs)\n    return float(s[len(s) // 2])\n"
+  ],
+  "notes": [
+   "Empty input: raise ValueError (A, B, E) vs return nan (C, D) vs return 0.0 (F)",
+   "Even length: mean of the two middle values (A, C, D, E) vs lower middle (B) vs upper middle (F)",
+   "NaN elements: stripped before computing (C), propagated as nan (D), rejected with ValueError (E), or left to Python's sort order (A, B, F) — cannot be expressed in JSON args but e.g. [nan, 1, 2, 3, 4] gives 2.0 / 2.5 / nan / error",
+   "Booleans and other non-Real elements: coerced silently (A-D, F) vs rejected with TypeError (E)",
+   "Midpoint arithmetic: (a+b)/2 overflows to inf for [1.7e308, 1.7e308] (A, C, D) while a+(b-a)/2 (E) stays finite but yields nan for [inf, inf]"
+  ],
+  "suggested_args": [
+   [
+    []
+   ],
+   [
+    [
+     1,
+     2,
+     3,
+     4
+    ]
+   ],
+   [
+    [
+     2,
+     1
+    ]
+   ],
+   [
+    [
+     1.5,
+     -2.5
+    ]
+   ],
+   [
+    [
+     1.7e+308,
+     1.7e+308
+    ]
+   ],
+   [
+    [
+     true,
+     false,
+     true
+    ]
+   ],
+   [
+    [
+     1e+308,
+     -1e+308,
+     1e+308,
+     -1e+308
+    ]
+   ]
+  ]
+ }
+}

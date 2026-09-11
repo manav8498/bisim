@@ -1,0 +1,76 @@
+{
+ "0": {
+  "candidates": [
+   "def dedupe(xs: list[int]) -> list[int]:\n    # Keep the FIRST occurrence of each value, preserving original order.\n    return list(dict.fromkeys(xs))\n",
+   "def dedupe(xs: list[int]) -> list[int]:\n    # Keep the LAST occurrence of each value, preserving the order of those last positions.\n    seen: set[int] = set()\n    out: list[int] = []\n    for x in reversed(xs):\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    out.reverse()\n    return out\n",
+   "def dedupe(xs: list[int]) -> list[int]:\n    # Treat the result as a set: unique values, returned in ascending sorted order.\n    return sorted(set(xs))\n",
+   "from itertools import groupby\n\n\ndef dedupe(xs: list[int]) -> list[int]:\n    # Unix `uniq` semantics: collapse only ADJACENT runs of equal values.\n    return [k for k, _ in groupby(xs)]\n",
+   "from collections import Counter\n\n\ndef dedupe(xs: list[int]) -> list[int]:\n    # 'Remove duplicate elements' read literally: drop every value that occurs more than once,\n    # keeping only values that appear exactly one time, in original order.\n    counts = Counter(xs)\n    return [x for x in xs if counts[x] == 1]\n",
+   "def dedupe(xs: list[int]) -> list[int]:\n    # Strict: reject anything that is not exactly an int (bool is a subclass of int and\n    # would otherwise silently merge with 0/1). Otherwise keep first occurrence in order.\n    for i, x in enumerate(xs):\n        if type(x) is not int:\n            raise TypeError(f\"element {i} is {type(x).__name__}, expected int\")\n    return list(dict.fromkeys(xs))\n"
+  ],
+  "notes": [
+   "Which occurrence survives / output order: keep-first in input order (C1, C6) vs keep-last in input order (C2) vs sorted ascending like a set (C3).",
+   "Scope of 'duplicate': anywhere in the list (C1,C2,C3,C5,C6) vs only adjacent repeats, Unix-uniq style (C4).",
+   "Does one copy survive or are repeated values removed entirely? C5 keeps only values that occur exactly once; all others keep one copy.",
+   "Type strictness: bool/float subclasses silently collapse into their int equals (C1-C5, e.g. True==1) vs TypeError on non-int elements (C6)."
+  ],
+  "suggested_args": [
+   [
+    [
+     3,
+     1,
+     3,
+     2,
+     1
+    ]
+   ],
+   [
+    [
+     1,
+     1,
+     2,
+     2,
+     1
+    ]
+   ],
+   [
+    [
+     -1,
+     1,
+     -1
+    ]
+   ],
+   [
+    [
+     4,
+     3,
+     4,
+     3,
+     4
+    ]
+   ],
+   [
+    [
+     2,
+     2,
+     2
+    ]
+   ],
+   [
+    [
+     1,
+     true,
+     2
+    ]
+   ],
+   [
+    []
+   ],
+   [
+    [
+     5
+    ]
+   ]
+  ]
+ }
+}

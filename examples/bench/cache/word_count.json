@@ -1,0 +1,47 @@
+{
+ "0": {
+  "candidates": [
+   "def word_count(s: str) -> int:\n    return len(s.split())\n",
+   "import re\n\n\ndef word_count(s: str) -> int:\n    return len(re.findall(r\"\\w+\", s))\n",
+   "import re\n\n\ndef word_count(s: str) -> int:\n    return len(re.findall(r\"[A-Za-z]+(?:'[A-Za-z]+)*\", s))\n",
+   "def word_count(s: str) -> int:\n    return sum(1 for tok in s.split() if any(ch.isalnum() for ch in tok))\n",
+   "def word_count(s: str) -> int:\n    return sum(1 for tok in s.split(\" \") if tok)\n",
+   "import re\n\n\ndef word_count(s: str) -> int:\n    return len(re.findall(r\"\\w+(?:[-'’]\\w+)*\", s))\n"
+  ],
+  "notes": [
+   "Punctuation-only tokens like '-' or '...' : counted as words (whitespace split) or ignored (alnum-required / regex).",
+   "Contractions like \"don't\": one word (split / apostrophe-aware regex) or two (\\w+ splits on the apostrophe).",
+   "Hyphenated compounds like 'well-known': one word (split / hyphen-aware regex) or two (\\w+ and letters-only regex).",
+   "Tokens glued by punctuation with no space ('hello,world', '2,000', 'e.g.'): one whitespace token or several regex words.",
+   "Which characters separate words: any whitespace (tabs/newlines) vs. only the space character.",
+   "Whether purely numeric tokens ('1 2 3') count as words (letters-only regex says no).",
+   "Whether non-ASCII letters ('naïve', 'café') form single words (unicode \\w) or get split (ASCII [A-Za-z])."
+  ],
+  "suggested_args": [
+   [
+    "don't stop"
+   ],
+   [
+    "well-known fact"
+   ],
+   [
+    "hello,world"
+   ],
+   [
+    "a\tb\nc"
+   ],
+   [
+    "1 2 3"
+   ],
+   [
+    "naïve café"
+   ],
+   [
+    "a - b ..."
+   ],
+   [
+    "e.g. 2,000 items"
+   ]
+  ]
+ }
+}

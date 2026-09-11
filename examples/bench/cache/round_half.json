@@ -1,0 +1,45 @@
+{
+ "0": {
+  "candidates": [
+   "def round_half(x: float) -> int:\n    # Round half to even (banker's rounding): Python's built-in round() semantics.\n    # 2.5 -> 2, 3.5 -> 4, -2.5 -> -2. NaN -> ValueError, inf -> OverflowError.\n    return int(round(x))\n",
+   "from decimal import Decimal, ROUND_HALF_UP\n\n\ndef round_half(x: float) -> int:\n    # Round half away from zero (schoolbook rounding), computed exactly on the\n    # binary value: 2.5 -> 3, -2.5 -> -3, 0.49999999999999994 -> 0.\n    # NaN -> ValueError, inf -> OverflowError (both raised by int()).\n    return int(Decimal(x).to_integral_value(rounding=ROUND_HALF_UP))\n",
+   "import math\n\n\ndef round_half(x: float) -> int:\n    # Round half up toward +inf using the common floor(x + 0.5) idiom.\n    # 2.5 -> 3, -2.5 -> -2. Inherits float artifacts: 0.49999999999999994 -> 1.\n    # NaN -> ValueError, inf -> OverflowError (raised by math.floor).\n    return math.floor(x + 0.5)\n",
+   "import math\n\n\ndef round_half(x: float) -> int:\n    # Round to nearest; exact ties (.5) are truncated toward zero.\n    # 2.5 -> 2, -2.5 -> -2, 3.5 -> 3, -3.5 -> -3. Any non-finite -> ValueError.\n    if not math.isfinite(x):\n        raise ValueError('cannot round non-finite value: %r' % (x,))\n    doubled = 2.0 * x  # exact for finite doubles unless it overflows\n    if math.isfinite(doubled) and doubled == math.floor(doubled) and int(doubled) % 2 != 0:\n        return int(x)  # exact tie: int() truncates toward zero\n    return round(x)  # not a tie: nearest integer is unambiguous\n",
+   "import math\n\n\ndef round_half(x: float) -> int:\n    # Round to nearest; exact ties (.5) go down toward -inf.\n    # 2.5 -> 2, -2.5 -> -3, 3.5 -> 3, -0.5 -> -1. Any non-finite -> ValueError.\n    if not math.isfinite(x):\n        raise ValueError('cannot round non-finite value: %r' % (x,))\n    doubled = 2.0 * x  # exact for finite doubles unless it overflows\n    if math.isfinite(doubled) and doubled == math.floor(doubled) and int(doubled) % 2 != 0:\n        return math.floor(x)  # exact tie: go down\n    return round(x)  # not a tie: nearest integer is unambiguous\n",
+   "import math\n\n_TIE_TOLERANCE = 1e-9\n\n\ndef round_half(x: float) -> int:\n    # Round to nearest, ties away from zero, but treat a fractional part within\n    # 1e-9 of .5 as a tie to absorb floating-point noise: 2.4999999999 -> 3,\n    # 0.49999999999999994 -> 1, 2.5 -> 3, -2.5 -> -3. Any non-finite -> ValueError.\n    if not math.isfinite(x):\n        raise ValueError('cannot round non-finite value: %r' % (x,))\n    magnitude = abs(x)\n    whole = math.floor(magnitude)\n    frac = magnitude - whole  # exact for doubles (Sterbenz)\n    if frac > 0.5 or abs(frac - 0.5) <= _TIE_TOLERANCE:\n        whole += 1\n    return whole if x >= 0 else -whole\n"
+  ],
+  "notes": [
+   "Exact .5 ties: half-to-even (C1) vs away-from-zero (C2, C6) vs toward +inf (C3) vs toward zero (C4) vs toward -inf (C5); visible on 2.5, -2.5, 3.5, -1.5, -0.5.",
+   "Floating-point artifact of the floor(x+0.5) idiom: 0.49999999999999994 and 4503599627370497.0 round up in C3 but not in the exact candidates.",
+   "Near-ties from decimal noise: C6 treats fractions within 1e-9 of .5 as ties (2.4999999999 -> 3); every other candidate gives 2.",
+   "Non-finite input: NaN raises ValueError everywhere, but +/-inf raises OverflowError in C1-C3 and ValueError in C4-C6.",
+   "Input type leniency: the Decimal-based C2 accepts numeric strings like '2.5'; the others raise TypeError on strings."
+  ],
+  "suggested_args": [
+   [
+    2.5
+   ],
+   [
+    -2.5
+   ],
+   [
+    3.5
+   ],
+   [
+    -1.5
+   ],
+   [
+    -0.5
+   ],
+   [
+    0.49999999999999994
+   ],
+   [
+    2.4999999999
+   ],
+   [
+    4503599627370497.0
+   ]
+  ]
+ }
+}

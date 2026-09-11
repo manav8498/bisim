@@ -74,7 +74,7 @@ def test_mint_loop_writes_everything(tmp_path):
     r = mint("median of a list", spec, fake, ans, tmp_path, str(tmp_path / "median.py"), tests_dir=str(tmp_path / "tests"))
     assert r.address.startswith("bsm1:")
     assert (tmp_path / "median.py").read_text().startswith("def median")
-    assert 1 <= r.questions_asked <= 2 and len(r.ledger.witnesses) == r.questions_asked
+    assert 1 <= r.questions_asked <= 5 and len(r.ledger.witnesses) == r.questions_asked
     # the first question must be about the input that splits all three behaviors
     q0 = ans.questions[0]
     assert q0.remaining_classes == 3 and len(q0.options) >= 2
@@ -123,7 +123,45 @@ def test_oracle_answerer_drives_to_the_reference(tmp_path):
 def test_mint_quit_keeps_first_surviving(tmp_path):
     spec = parse_signature("def median(xs: list[float]) -> float")
     r = mint("median", spec, Fake(), ScriptedAnswerer([Answer("quit")]), tmp_path, str(tmp_path / "m.py"))
-    assert r.questions_asked == 1 and r.ledger.witnesses == []
+    assert r.questions_asked == 0 and r.ledger.witnesses == []
+
+
+ZERO_LOWER = LOWER.replace("raise ValueError('empty')", "return 0.0")
+
+
+def test_confirmation_recovers_a_pruned_disagreement(tmp_path):
+    """LOWER and ZERO differ on [] and on even-length lists. The split loop asks about [] first,
+    prunes ZERO, and is left with LOWER — whose even-length behavior the user never approved.
+    A confirmation question on a once-contested even-length input catches it; regeneration
+    with the witnesses then yields MEAN."""
+    from bisim.mint import OracleAnswerer
+
+    spec = parse_signature("def median(xs: list[float]) -> float")
+
+    class Regen(Fake):
+        def generate(self, intent, spec, k, witnesses):
+            self.calls += 1
+            if self.calls == 1:
+                return Generation([LOWER, ZERO], [], [[[1.0, 2.0, 3.0, 4.0]], [[]]])
+            return Generation([MEAN], [], [])
+
+    c = Regen()
+    r = mint("median", spec, c, OracleAnswerer(MEAN, "median"), tmp_path, str(tmp_path / "m.py"))
+    assert (tmp_path / "m.py").read_text() == MEAN and c.calls == 2
+    assert 2 <= r.questions_asked <= 4 and any(w.note.startswith("confirmed") for w in r.ledger.witnesses)
+    # without confirmations the old protocol silently keeps LOWER
+    c2 = Regen()
+    r2 = mint("median", spec, c2, OracleAnswerer(MEAN, "median"), tmp_path, str(tmp_path / "m2.py"), max_confirm=0)
+    assert (tmp_path / "m2.py").read_text() == LOWER and r2.questions_asked == 1 and c2.calls == 1
+
+
+def test_confirmation_questions_are_flagged_and_quit_declines_them(tmp_path):
+    spec = parse_signature("def median(xs: list[float]) -> float")
+    ans = Recording([Answer("choose", 0), Answer("quit"), Answer("quit"), Answer("quit")])
+    r = mint("median", spec, Fake([LOWER, ZERO]), ans, tmp_path, str(tmp_path / "m.py"))
+    assert ans.questions[0].confirm is False and ans.questions[0].probe.args == ([],)
+    assert ans.questions[1].confirm is True and len(ans.questions) <= 4
+    assert r.questions_asked == 1 and len(r.ledger.witnesses) == 1
 
 
 def test_mint_regenerates_when_no_candidate_matches(tmp_path):

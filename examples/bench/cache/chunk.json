@@ -1,0 +1,84 @@
+{
+ "0": {
+  "candidates": [
+   "def chunk(xs: list[int], n: int) -> list[list[int]]:\n    if n < 1:\n        raise ValueError(\"chunk size must be a positive integer\")\n    return [xs[i:i + n] for i in range(0, len(xs), n)]\n",
+   "def chunk(xs: list[int], n: int) -> list[list[int]]:\n    # Lenient: a non-positive chunk size yields no chunks instead of raising.\n    if n <= 0:\n        return []\n    return [xs[i:i + n] for i in range(0, len(xs), n)]\n",
+   "def chunk(xs: list[int], n: int) -> list[list[int]]:\n    # Only full chunks: a trailing partial chunk is discarded.\n    if n < 1:\n        raise ValueError(\"chunk size must be a positive integer\")\n    full = len(xs) // n\n    return [xs[i * n:(i + 1) * n] for i in range(full)]\n",
+   "def chunk(xs: list[int], n: int) -> list[list[int]]:\n    # Every chunk has exactly n elements; the last one is padded with 0.\n    if n < 1:\n        raise ValueError(\"chunk size must be a positive integer\")\n    out = [xs[i:i + n] for i in range(0, len(xs), n)]\n    if out and len(out[-1]) < n:\n        out[-1] = out[-1] + [0] * (n - len(out[-1]))\n    return out\n",
+   "def chunk(xs: list[int], n: int) -> list[list[int]]:\n    # Always returns at least one chunk: empty input -> [[]];\n    # a non-positive size means \"don't split\" -> [xs].\n    if n <= 0 or not xs:\n        return [list(xs)]\n    return [xs[i:i + n] for i in range(0, len(xs), n)]\n",
+   "def chunk(xs: list[int], n: int) -> list[list[int]]:\n    # Reads n as the NUMBER of chunks: split into n balanced parts\n    # (earlier parts get the extra element when it doesn't divide evenly).\n    if n < 1:\n        raise ValueError(\"number of chunks must be a positive integer\")\n    q, r = divmod(len(xs), n)\n    out: list[list[int]] = []\n    start = 0\n    for i in range(n):\n        size = q + (1 if i < r else 0)\n        out.append(xs[start:start + size])\n        start += size\n    return out\n"
+  ],
+  "notes": [
+   "n <= 0: raise ValueError vs return [] vs return [xs] (no split)",
+   "Trailing partial chunk: keep as-is vs drop vs pad with 0 to length n",
+   "Empty input: [] vs [[]] (always at least one chunk) vs n empty lists",
+   "n larger than len(xs): single chunk vs no chunks vs padded chunk",
+   "'chunks of size n' vs 'n chunks' (balanced split) reading of n",
+   "Whether returned inner lists are slices (copies) of xs or the same object when not split"
+  ],
+  "suggested_args": [
+   [
+    [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    2
+   ],
+   [
+    [],
+    3
+   ],
+   [
+    [
+     1,
+     2,
+     3
+    ],
+    0
+   ],
+   [
+    [
+     1,
+     2,
+     3
+    ],
+    -1
+   ],
+   [
+    [
+     1,
+     2,
+     3
+    ],
+    5
+   ],
+   [
+    [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    3
+   ],
+   [
+    [],
+    0
+   ],
+   [
+    [
+     1,
+     2,
+     3,
+     4
+    ],
+    3
+   ]
+  ]
+ }
+}

@@ -1,0 +1,61 @@
+{
+ "0": {
+  "candidates": [
+   "def clamp(x: int, lo: int, hi: int) -> int:\n    # Lower bound wins when lo > hi (max applied last).\n    return max(lo, min(x, hi))\n",
+   "def clamp(x: int, lo: int, hi: int) -> int:\n    # Upper bound wins when lo > hi (min applied last).\n    return min(hi, max(x, lo))\n",
+   "def clamp(x: int, lo: int, hi: int) -> int:\n    # An inverted range is a caller error.\n    if lo > hi:\n        raise ValueError(f\"invalid range: lo={lo} > hi={hi}\")\n    if x < lo:\n        return lo\n    if x > hi:\n        return hi\n    return x\n",
+   "def clamp(x: int, lo: int, hi: int) -> int:\n    # An inverted range is silently normalized by swapping the bounds.\n    if lo > hi:\n        lo, hi = hi, lo\n    if x < lo:\n        return lo\n    if x > hi:\n        return hi\n    return x\n",
+   "def clamp(x: int, lo: int, hi: int) -> int:\n    # Strict: only real ints are accepted (bool and float are rejected).\n    for name, v in ((\"x\", x), (\"lo\", lo), (\"hi\", hi)):\n        if not isinstance(v, int) or isinstance(v, bool):\n            raise TypeError(f\"{name} must be an int, got {type(v).__name__}\")\n    if lo > hi:\n        raise ValueError(f\"invalid range: lo={lo} > hi={hi}\")\n    return max(lo, min(x, hi))\n",
+   "def clamp(x: int, lo: int, hi: int) -> int:\n    # Lenient: accepts any real number and always returns a true int (truncating toward zero).\n    if lo > hi:\n        raise ValueError(f\"invalid range: lo={lo} > hi={hi}\")\n    return int(max(lo, min(x, hi)))\n"
+  ],
+  "notes": [
+   "When lo > hi, is the result lo (max-last), hi (min-last), a swapped range, or an error?",
+   "Should lo > hi be treated as a caller error (ValueError) or silently handled?",
+   "Should non-int numerics like 2.5 be rejected (TypeError) or accepted?",
+   "Should bool inputs (True/False) count as ints or be rejected?",
+   "If a float sneaks in, should the result be the float itself or coerced to int (truncation)?"
+  ],
+  "suggested_args": [
+   [
+    5,
+    10,
+    0
+   ],
+   [
+    15,
+    10,
+    0
+   ],
+   [
+    -3,
+    10,
+    0
+   ],
+   [
+    2.5,
+    0,
+    5
+   ],
+   [
+    3.7,
+    0,
+    5
+   ],
+   [
+    true,
+    0,
+    5
+   ],
+   [
+    7,
+    3,
+    3
+   ],
+   [
+    -5,
+    -10,
+    -1
+   ]
+  ]
+ }
+}

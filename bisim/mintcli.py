@@ -25,7 +25,7 @@ def run_mint(args) -> int:
     print(f"  asking {args.model or 'claude-opus-5'} via {type(client).__name__} for {args.k} deliberately different implementations…")
     try:
         r = mint(args.intent, spec, client, ConsoleAnswerer(), root, args.out, k=args.k,
-                 max_questions=args.max_questions, timeout=args.timeout, tests_dir=args.tests_dir)
+                 max_questions=args.max_questions, timeout=args.timeout, tests_dir=args.tests_dir, max_confirm=args.confirm)
     except SandboxError as e:
         print(f"error: {e}", file=sys.stderr)
         return 4

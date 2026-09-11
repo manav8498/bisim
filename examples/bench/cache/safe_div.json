@@ -1,0 +1,55 @@
+{
+ "0": {
+  "candidates": [
+   "def safe_div(a: float, b: float) -> float:\n    \"\"\"Plain division; division by zero is an error (ZeroDivisionError).\"\"\"\n    return a / b\n",
+   "def safe_div(a: float, b: float) -> float:\n    \"\"\"Division by zero yields 0.0 (common 'safe divide' convention).\"\"\"\n    if b == 0:\n        return 0.0\n    return a / b\n",
+   "import math\n\n\ndef safe_div(a: float, b: float) -> float:\n    \"\"\"IEEE-754 semantics: x/0 -> +-inf (sign-aware, respects -0.0), 0/0 -> nan.\"\"\"\n    if b == 0:\n        if a == 0 or math.isnan(a):\n            return math.nan\n        sign = math.copysign(1.0, a) * math.copysign(1.0, b)\n        return math.copysign(math.inf, sign)\n    return a / b\n",
+   "import math\n\n\ndef safe_div(a: float, b: float) -> float:\n    \"\"\"Any division by zero is 'undefined' and yields nan.\"\"\"\n    if b == 0:\n        return math.nan\n    return a / b\n",
+   "import math\n\n_EPS = 1e-9\n\n\ndef safe_div(a: float, b: float) -> float:\n    \"\"\"Strict finite inputs; denominators within 1e-9 of zero are treated as zero -> 0.0.\"\"\"\n    if not (math.isfinite(a) and math.isfinite(b)):\n        raise ValueError(\"safe_div requires finite inputs\")\n    if abs(b) < _EPS:\n        return 0.0\n    return a / b\n",
+   "import math\nimport sys\n\n\ndef safe_div(a: float, b: float) -> float:\n    \"\"\"Saturating division: x/0 clamps to the largest finite float (sign-aware); 0/0 -> 0.0.\"\"\"\n    if b == 0:\n        if a == 0 or math.isnan(a):\n            return 0.0\n        sign = math.copysign(1.0, a) * math.copysign(1.0, b)\n        return math.copysign(sys.float_info.max, sign)\n    return a / b\n"
+  ],
+  "notes": [
+   "Division by exactly zero: raise (ZeroDivisionError) vs return a sentinel (0.0, nan, +-inf, or +-float max).",
+   "Sign of the result when b == 0: sign-aware (+inf / -inf / -max) vs constant sentinel regardless of sign of a.",
+   "Negative zero denominator (-0.0): IEEE candidate flips the sign of the result; others ignore it.",
+   "0/0 specifically: nan vs 0.0 vs raise (indeterminate form treated differently from x/0).",
+   "Near-zero denominators: only the epsilon candidate treats |b| < 1e-9 as zero, giving 0.0 instead of a huge quotient.",
+   "Non-finite inputs (nan/inf): the strict-validation candidate raises ValueError; all others propagate per float arithmetic.",
+   "'Safe' result finiteness: saturating candidate never returns inf/nan, whereas the IEEE and nan candidates do."
+  ],
+  "suggested_args": [
+   [
+    1.0,
+    0.0
+   ],
+   [
+    -1.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0
+   ],
+   [
+    1.0,
+    -0.0
+   ],
+   [
+    1.0,
+    1e-10
+   ],
+   [
+    -5.0,
+    -0.0
+   ],
+   [
+    1e+308,
+    1e-308
+   ],
+   [
+    6.0,
+    3.0
+   ]
+  ]
+ }
+}

@@ -1,0 +1,46 @@
+{
+ "0": {
+  "candidates": [
+   "def parse_bool(s: str) -> bool:\n    \"\"\"Strict: only the exact lowercase literals 'true' and 'false' are accepted.\"\"\"\n    if s == \"true\":\n        return True\n    if s == \"false\":\n        return False\n    raise ValueError(f\"not a boolean: {s!r}\")\n",
+   "def parse_bool(s: str) -> bool:\n    \"\"\"distutils.strtobool-style: case-insensitive, whitespace-stripped, broad vocabulary; anything else is an error.\"\"\"\n    v = s.strip().lower()\n    if v in (\"true\", \"t\", \"yes\", \"y\", \"on\", \"1\"):\n        return True\n    if v in (\"false\", \"f\", \"no\", \"n\", \"off\", \"0\"):\n        return False\n    raise ValueError(f\"invalid truth value {s!r}\")\n",
+   "def parse_bool(s: str) -> bool:\n    \"\"\"Lenient, never raises: a known truthy word yields True, everything else (including unknown/empty) yields False.\"\"\"\n    return s.strip().lower() in {\"true\", \"t\", \"yes\", \"y\", \"on\", \"1\"}\n",
+   "def parse_bool(s: str) -> bool:\n    \"\"\"Python-truthiness flavored: a known falsy word or empty/blank string is False, any other non-empty string is True.\"\"\"\n    v = s.strip().lower()\n    if v in {\"\", \"false\", \"f\", \"no\", \"n\", \"off\", \"0\", \"none\", \"null\", \"nil\"}:\n        return False\n    return True\n",
+   "def parse_bool(s: str) -> bool:\n    \"\"\"Numeric-aware: 'true'/'false' (case-insensitive) or any number, where nonzero is True; other words are errors.\"\"\"\n    v = s.strip().lower()\n    if v == \"true\":\n        return True\n    if v == \"false\":\n        return False\n    try:\n        return float(v) != 0.0\n    except ValueError:\n        raise ValueError(f\"cannot parse {s!r} as bool\") from None\n",
+   "def parse_bool(s: str) -> bool:\n    \"\"\"Literal-spelling only: accepts Python ('True'/'False'), JSON ('true'/'false') and '1'/'0' after stripping whitespace; case otherwise matters.\"\"\"\n    v = s.strip()\n    if v in (\"True\", \"true\", \"1\"):\n        return True\n    if v in (\"False\", \"false\", \"0\"):\n        return False\n    raise ValueError(f\"cannot parse {s!r} as bool\")\n"
+  ],
+  "notes": [
+   "Case sensitivity: is 'True' or 'TRUE' the same as 'true', or only exact spellings?",
+   "Whitespace: should surrounding spaces/newlines be stripped before matching?",
+   "Vocabulary: are 'yes'/'no', 'on'/'off', 'y'/'n', 't'/'f' valid spellings or only 'true'/'false'?",
+   "Empty string: an error, or simply False?",
+   "Unrecognized strings: raise ValueError, default to False, or treat any non-empty string as True (Python truthiness)?",
+   "Numeric strings beyond '1'/'0': is '2' True, '0.0' False, or are they invalid?"
+  ],
+  "suggested_args": [
+   [
+    "True"
+   ],
+   [
+    "TRUE"
+   ],
+   [
+    "yes"
+   ],
+   [
+    ""
+   ],
+   [
+    "2"
+   ],
+   [
+    "maybe"
+   ],
+   [
+    "0.0"
+   ],
+   [
+    " true "
+   ]
+  ]
+ }
+}

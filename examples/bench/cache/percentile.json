@@ -1,0 +1,89 @@
+{
+ "0": {
+  "candidates": [
+   "import math\n\ndef percentile(xs: list[float], p: float) -> float:\n    # Linear interpolation, inclusive (numpy default / R type 7 / Excel PERCENTILE.INC).\n    if not xs:\n        raise ValueError(\"percentile of empty list\")\n    if not 0 <= p <= 100:\n        raise ValueError(\"p must be in [0, 100]\")\n    s = sorted(xs)\n    n = len(s)\n    rank = (p / 100) * (n - 1)\n    lo = math.floor(rank)\n    hi = math.ceil(rank)\n    if lo == hi:\n        return float(s[lo])\n    frac = rank - lo\n    return float(s[lo] + (s[hi] - s[lo]) * frac)\n",
+   "import math\n\ndef percentile(xs: list[float], p: float) -> float:\n    # Nearest-rank method: value at ordinal rank ceil(p/100 * n); no interpolation.\n    if not xs:\n        raise ValueError(\"percentile of empty list\")\n    if not 0 <= p <= 100:\n        raise ValueError(\"p must be in [0, 100]\")\n    s = sorted(xs)\n    n = len(s)\n    k = math.ceil(p / 100 * n)\n    k = min(max(k, 1), n)\n    return float(s[k - 1])\n",
+   "import math\n\ndef percentile(xs: list[float], p: float) -> float:\n    # Exclusive method (Excel PERCENTILE.EXC / R type 6): rank = p/100*(n+1), clamped to [min, max].\n    if not xs:\n        raise ValueError(\"percentile of empty list\")\n    if not 0 <= p <= 100:\n        raise ValueError(\"p must be in [0, 100]\")\n    s = sorted(xs)\n    n = len(s)\n    rank = p / 100 * (n + 1)\n    if rank <= 1:\n        return float(s[0])\n    if rank >= n:\n        return float(s[-1])\n    lo = math.floor(rank)\n    frac = rank - lo\n    return float(s[lo - 1] + (s[lo] - s[lo - 1]) * frac)\n",
+   "import math\n\ndef percentile(xs: list[float], p: float) -> float:\n    # Lenient linear interpolation: empty -> nan, p clamped into [0, 100] instead of raising.\n    if not xs:\n        return math.nan\n    p = min(max(p, 0.0), 100.0)\n    s = sorted(xs)\n    n = len(s)\n    rank = p / 100 * (n - 1)\n    lo = math.floor(rank)\n    hi = min(lo + 1, n - 1)\n    frac = rank - lo\n    return float(s[lo] * (1 - frac) + s[hi] * frac)\n",
+   "import math\n\ndef percentile(xs: list[float], p: float) -> float:\n    # Hazen / MATLAB prctile method (R type 5): rank = p/100*n + 0.5, clamped; p clamped to [0, 100].\n    if not xs:\n        raise ValueError(\"percentile of empty list\")\n    p = min(max(p, 0.0), 100.0)\n    s = sorted(xs)\n    n = len(s)\n    rank = p / 100 * n + 0.5\n    if rank <= 1:\n        return float(s[0])\n    if rank >= n:\n        return float(s[-1])\n    lo = math.floor(rank)\n    frac = rank - lo\n    return float(s[lo - 1] + (s[lo] - s[lo - 1]) * frac)\n",
+   "import math\n\ndef percentile(xs: list[float], p: float) -> float:\n    # Round to nearest index of the sorted data (no interpolation); empty -> nan; bad p raises.\n    if not 0 <= p <= 100:\n        raise ValueError(\"p must be in [0, 100]\")\n    if not xs:\n        return math.nan\n    s = sorted(xs)\n    idx = round(p / 100 * (len(s) - 1))\n    return float(s[idx])\n"
+  ],
+  "notes": [
+   "Interpolation convention between data points: linear-inclusive (numpy/R7), nearest-rank (ceil), exclusive (Excel .EXC/R6), Hazen (MATLAB/R5), or round-to-nearest index — all give different answers for e.g. p=25 on [1,2,3,4].",
+   "Empty list: raise ValueError vs return math.nan.",
+   "p outside [0,100]: raise ValueError vs silently clamp to [0,100].",
+   "Exclusive and Hazen methods produce ranks outside 1..n near p=0/100 and must clamp to min/max, so they saturate earlier than the inclusive method (e.g. p=90 on 5 items).",
+   "Nearest-rank uses ceil, so p=0 needs a special case to return the minimum rather than an out-of-range index.",
+   "Round-to-nearest uses Python's banker's rounding (round(1.5)==2, round(0.5)==0), which is deterministic but surprising at exact .5 ranks.",
+   "Order of validation matters: one candidate checks p before checking emptiness, so ([], 101) raises rather than returning nan."
+  ],
+  "suggested_args": [
+   [
+    [
+     1,
+     2,
+     3,
+     4
+    ],
+    25
+   ],
+   [
+    [
+     1,
+     2,
+     3,
+     4
+    ],
+    50
+   ],
+   [
+    [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    90
+   ],
+   [
+    [
+     5,
+     1,
+     4,
+     2,
+     3
+    ],
+    10
+   ],
+   [
+    [],
+    50
+   ],
+   [
+    [
+     3,
+     1,
+     2
+    ],
+    101
+   ],
+   [
+    [
+     1,
+     2,
+     3
+    ],
+    33.3
+   ],
+   [
+    [
+     2.5,
+     -1.0,
+     7.0
+    ],
+    75
+   ]
+  ]
+ }
+}
