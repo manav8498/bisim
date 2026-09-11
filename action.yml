@@ -1,0 +1,35 @@
+name: "bisim check"
+description: "Behavioral gate for pull requests: flags every changed Python function whose behavior changed, with the input that proves it."
+branding:
+  icon: "git-commit"
+  color: "purple"
+inputs:
+  base:
+    description: "Git ref to compare the worktree against"
+    default: "origin/${{ github.base_ref || 'main' }}"
+  python-version:
+    description: "Python version to run bisim with"
+    default: "3.12"
+  fail-on:
+    description: "Exit code threshold that fails the job: 'witness' (only witnessed intent violations) or 'change' (any behavioral change)"
+    default: "witness"
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    - shell: bash
+      run: |
+        set -euo pipefail
+        python -m pip install -q "${{ github.action_path }}"
+        git fetch -q --no-tags origin "+refs/heads/*:refs/remotes/origin/*" || true
+        set +e
+        bisim check --base "${{ inputs.base }}" | tee bisim-check.txt
+        code=${PIPESTATUS[0]}
+        set -e
+        { echo '### bisim check'; echo; echo '```'; cat bisim-check.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        case "${{ inputs.fail-on }}" in
+          change)  [ "$code" -le 0 ] || { echo "behavior changed (exit $code)"; exit 1; } ;;
+          *)       [ "$code" -le 1 ] || { echo "witnessed intent violated or refusal/error (exit $code)"; exit 1; } ;;
+        esac

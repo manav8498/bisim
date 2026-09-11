@@ -181,3 +181,18 @@ bash examples/demo.sh
 Design spec: `docs/superpowers/specs/2026-09-11-bisim-design.md`. Plan: `docs/superpowers/plans/2026-09-11-bisim.md`.
 
 MIT.
+
+## GitHub Action
+
+```yaml
+- uses: actions/checkout@v4
+  with: { fetch-depth: 0 }
+- uses: <your-org>/bisim@main        # this repo doubles as a composite action
+  with:
+    base: origin/${{ github.base_ref }}
+    fail-on: witness                 # or "change" to block on any behavioral change
+```
+
+Every changed function is diffed against the base ref; the table lands in the job summary. Probe sets
+widen automatically until each function's lines have all executed at least once (or coverage plateaus),
+and any lines that never ran are named in the output.
