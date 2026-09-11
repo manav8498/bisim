@@ -24,8 +24,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/manavpatel/bisim"
-Changelog = "https://github.com/manavpatel/bisim/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/manav8498/bisim"
+Changelog = "https://github.com/manav8498/bisim/blob/main/CHANGELOG.md"
+Issues = "https://github.com/manav8498/bisim/issues"
 
 [project.optional-dependencies]
 llm = ["anthropic>=0.40"]

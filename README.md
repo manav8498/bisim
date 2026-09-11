@@ -1,5 +1,7 @@
 # bisim — behavior-addressed code
 
+[![ci](https://github.com/manav8498/bisim/actions/workflows/ci.yml/badge.svg)](https://github.com/manav8498/bisim/actions/workflows/ci.yml) [![PyPI](https://img.shields.io/pypi/v/bisim.svg)](https://pypi.org/project/bisim/) [![Python](https://img.shields.io/badge/python-3.11%E2%80%933.14-blue.svg)](#install) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 **Git addresses code by what it *says*. `bisim` addresses code by what it *does* — and a human signs the address.**
 
 A function's (or class's) **behavioral address** (`bsm1:…`) is a Merkle hash of its observed behavior
@@ -335,7 +337,7 @@ Design spec with amendments: `docs/superpowers/specs/2026-09-11-bisim-design.md`
 ```yaml
 - uses: actions/checkout@v4
   with: { fetch-depth: 0 }
-- uses: <your-org>/bisim@main        # this repo doubles as a composite action
+- uses: manav8498/bisim@v1.0.0       # this repo doubles as a composite action
   with:
     base: origin/${{ github.base_ref }}
     fail-on: witness                 # or "change" to block on any behavioral change
