@@ -41,5 +41,84 @@
     4503599627370497.0
    ]
   ]
+ },
+ "6": {
+  "candidates": [
+   "import math\n\n\ndef round_half(x: float) -> int:\n    # Classic floor(|x| + 0.5) trick, half away from zero.\n    # Lenient: anything float() accepts (ints, bools, numeric strings) is coerced.\n    x = float(x)\n    if math.isnan(x) or math.isinf(x):\n        raise ValueError('cannot round a non-finite value')\n    magnitude = math.floor(abs(x) + 0.5)\n    return magnitude if x >= 0 else -magnitude\n",
+   "import math\n\n\ndef round_half(x: float) -> int:\n    # Exact fractional-part test, half away from zero.\n    # Strict: only int or float accepted (bool rejected); ints returned unchanged.\n    if isinstance(x, bool) or not isinstance(x, (int, float)):\n        raise TypeError(f'expected int or float, got {type(x).__name__}')\n    if isinstance(x, int):\n        return x\n    if math.isnan(x) or math.isinf(x):\n        raise ValueError('cannot round a non-finite value')\n    ax = abs(x)\n    whole = math.floor(ax)\n    frac = ax - whole  # exact for IEEE doubles\n    if frac >= 0.5:\n        whole += 1\n    return whole if x >= 0 else -whole\n",
+   "import math\nimport numbers\nfrom decimal import Decimal, ROUND_HALF_UP\n\n\ndef round_half(x: float) -> int:\n    # Decimal ROUND_HALF_UP (ties away from zero) on the exact binary value.\n    # Accepts any numbers.Real (bool is an int). NaN is a TypeError, inf a ValueError.\n    if not isinstance(x, numbers.Real):\n        raise TypeError(f'expected a real number, got {type(x).__name__}')\n    if isinstance(x, numbers.Integral):\n        return int(x)\n    x = float(x)\n    if math.isnan(x):\n        raise TypeError('NaN is not a number and cannot be rounded')\n    if math.isinf(x):\n        raise ValueError('cannot round an infinite value')\n    return int(Decimal(x).to_integral_value(rounding=ROUND_HALF_UP))\n",
+   "import math\nimport numbers\n\n\ndef round_half(x: float) -> int:\n    # Built on the correctly-rounded builtin round(), with ties pushed away from zero.\n    # Accepts any numbers.Real except bool; everything goes through float().\n    if isinstance(x, bool) or not isinstance(x, numbers.Real):\n        raise TypeError(f'expected a real number, got {type(x).__name__}')\n    x = float(x)\n    if not math.isfinite(x):\n        raise ValueError('cannot round a non-finite value')\n    truncated = math.trunc(x)\n    if abs(x - truncated) == 0.5:\n        return truncated + (1 if x > 0 else -1)\n    return round(x)\n",
+   "import math\nimport numbers\n\n_HALF_TOLERANCE = 1e-12\n\n\ndef round_half(x: float) -> int:\n    # Half away from zero, but a fraction within 1e-12 of .5 counts as a tie\n    # (absorbs accumulated floating-point noise). Accepts any numbers.Real.\n    if not isinstance(x, numbers.Real):\n        raise TypeError(f'expected a real number, got {type(x).__name__}')\n    x = float(x)\n    if math.isnan(x) or math.isinf(x):\n        raise ValueError('cannot round a non-finite value')\n    ax = abs(x)\n    whole = math.floor(ax)\n    frac = ax - whole\n    if frac >= 0.5 - _HALF_TOLERANCE:\n        whole += 1\n    return whole if x >= 0 else -whole\n",
+   "import math\n\n\ndef round_half(x: float) -> int:\n    # Exact split via math.modf, half away from zero.\n    # Lenient: anything float() accepts (ints, bools, numeric strings) is coerced.\n    x = float(x)\n    if not math.isfinite(x):\n        raise ValueError('cannot round a non-finite value')\n    frac, whole = math.modf(x)\n    result = int(whole)\n    if abs(frac) >= 0.5:\n        result += 1 if x > 0 else -1\n    return result\n"
+  ],
+  "notes": [
+   "Float noise at the tie: the floor(|x|+0.5) trick (C1) mis-rounds 0.49999999999999994 -> 1 and 4503599627370497.0 -> ...498 because the +0.5 addition rounds; exact fractional tests (C2, C3, C4, C6) give 0 and ...497.",
+   "Fuzzy half: C5 treats fractions within 1e-12 of .5 as a genuine tie (2.4999999999999 -> 3, still 2.4999999999 -> 2); all others round it down to 2.",
+   "String coercion: float()-based candidates (C1, C6) accept '2.5' -> 3; type-checking candidates (C2, C3, C4, C5) raise TypeError.",
+   "bool input: rejected with TypeError (C2, C4) vs treated as the int 0/1 (C1, C3, C5, C6 -> True gives 1).",
+   "Large int input: returned exactly without a float round-trip (C2, C3 -> 2**60+1 unchanged) vs coerced through float and losing precision beyond 2**53 (C1, C4, C5, C6 -> 2**60).",
+   "NaN (not JSON-expressible, so not in suggested_args): ValueError like int(nan) in most candidates vs TypeError as a non-number in C3."
+  ],
+  "suggested_args": [
+   [
+    0.49999999999999994
+   ],
+   [
+    4503599627370497.0
+   ],
+   [
+    2.4999999999999
+   ],
+   [
+    "2.5"
+   ],
+   [
+    true
+   ],
+   [
+    1152921504606846977
+   ]
+  ]
+ },
+ "4": {
+  "candidates": [
+   "import math\n\n\ndef round_half(x: float) -> int:\n    if math.isinf(x):\n        raise ValueError('cannot round an infinite value')\n    magnitude = math.floor(abs(x) + 0.5)\n    return -magnitude if x < 0 else magnitude\n",
+   "import math\n\n\ndef round_half(x: float) -> int:\n    if math.isnan(x) or math.isinf(x):\n        raise ValueError('cannot round a non-finite value')\n    truncated = math.trunc(x)\n    if abs(x - truncated) >= 0.5:\n        truncated += 1 if x > 0 else -1\n    return int(truncated)\n",
+   "import math\nfrom decimal import Decimal, ROUND_HALF_UP\n\n\ndef round_half(x: float) -> int:\n    value = float(x)\n    if not math.isfinite(value):\n        raise ValueError('cannot round a non-finite value')\n    return int(Decimal(value).to_integral_value(rounding=ROUND_HALF_UP))\n",
+   "import math\n\n\ndef round_half(x: float) -> int:\n    if isinstance(x, bool) or not isinstance(x, (int, float)):\n        raise TypeError('expected a real number, got ' + type(x).__name__)\n    if math.isnan(x):\n        raise TypeError('NaN is not a number and cannot be rounded')\n    if math.isinf(x):\n        raise ValueError('cannot round an infinite value')\n    truncated = math.trunc(x)\n    if abs(x - truncated) >= 0.5:\n        truncated += 1 if x > 0 else -1\n    return truncated\n",
+   "import math\n\n\ndef round_half(x: float) -> int:\n    if math.isnan(x) or math.isinf(x):\n        raise ValueError('cannot round a non-finite value')\n    truncated = math.trunc(x)\n    fraction = abs(x - truncated)\n    away = truncated + (1 if x > 0 else -1)\n    if fraction > 0.5:\n        return int(away)\n    if fraction < 0.5:\n        return int(truncated)\n    # exact tie: pick whichever neighbour is odd\n    return int(truncated) if truncated % 2 else int(away)\n",
+   "import math\nfrom fractions import Fraction\n\n\ndef round_half(x: float) -> int:\n    try:\n        value = Fraction(x)\n    except OverflowError as exc:\n        raise ValueError('cannot round an infinite value') from exc\n    lower = math.floor(value)\n    remainder = value - lower\n    half = Fraction(1, 2)\n    if remainder > half:\n        return lower + 1\n    if remainder < half:\n        return lower\n    return lower + 1 if value > 0 else lower\n"
+  ],
+  "notes": [
+   "Floating-point artifact: the classic floor(|x|+0.5) formula (candidate 1) gives 1 for 0.49999999999999994 and 2**52+2 for 4503599627370497.0, whereas exact fractional-part comparison gives 0 and 2**52+1.",
+   "Tie rule beyond the fixed points: half-away-from-zero (most candidates) vs half-to-odd (candidate 5) both satisfy 2.5->3 and -2.5->-3 but differ at 1.5, 3.5, -1.5.",
+   "Non-float input: strict TypeError for strings (candidates 1,2,4,5) vs float() coercion accepting '2.5' (candidate 3) vs exact Fraction parsing (candidate 6).",
+   "bool input: True accepted as 1 (most) vs rejected with TypeError (candidate 4).",
+   "NaN: treated like inf with ValueError (most) vs TypeError 'not a number' (candidate 4).",
+   "High-precision string/Decimal inputs: coerced through float so '0.49999999999999999999' becomes 0.5 -> 1 (candidate 3) vs kept exact -> 0 (candidate 6)."
+  ],
+  "suggested_args": [
+   [
+    0.49999999999999994
+   ],
+   [
+    4503599627370497.0
+   ],
+   [
+    1.5
+   ],
+   [
+    -1.5
+   ],
+   [
+    "2.5"
+   ],
+   [
+    "0.49999999999999999999"
+   ],
+   [
+    true
+   ]
+  ]
  }
 }

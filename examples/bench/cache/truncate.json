@@ -52,5 +52,58 @@
     3
    ]
   ]
+ },
+ "5": {
+  "candidates": [
+   "import unicodedata\n\n\ndef truncate(s: str, n: int) -> str:\n    if n < 0:\n        raise ValueError('n must be non-negative')\n    if n == 0:\n        return ''\n    t = unicodedata.normalize('NFD', s)\n    if len(t) <= n:\n        return s\n    return t[:n - 1] + '…'\n",
+   "import unicodedata\n\n\ndef truncate(s: str, n: int) -> str:\n    if n < 0:\n        raise ValueError('n must be non-negative')\n    if n == 0:\n        return ''\n    t = unicodedata.normalize('NFD', s)\n    if len(t) <= n:\n        return s\n    # never leave whitespace dangling before the ellipsis\n    return t[:n - 1].rstrip() + '…'\n",
+   "import unicodedata\n\n\ndef truncate(s: str, n: int) -> str:\n    if n < 0:\n        raise ValueError('n must be non-negative')\n    t = unicodedata.normalize('NFD', s)\n    if len(t) <= n:\n        return s\n    if n < 2:\n        # no room for a kept character plus an ellipsis: hard cut, no ellipsis\n        return t[:n]\n    return t[:n - 1] + '…'\n",
+   "import re\nimport unicodedata\n\n\ndef truncate(s: str, n: int) -> str:\n    if n < 0:\n        raise ValueError('n must be non-negative')\n    if n == 0:\n        return ''\n    t = unicodedata.normalize('NFD', s)\n    if len(t) <= n:\n        return s\n    head = t[:n - 1]\n    if not t[n - 1].isspace():\n        # cut lands mid-word: back up to the last word boundary if that leaves something\n        m = re.search(r'\\s\\S*$', head)\n        if m:\n            cut = head[:m.start()].rstrip()\n            if cut:\n                head = cut\n    return head.rstrip() + '…'\n",
+   "import unicodedata\n\n\ndef truncate(s: str, n: int) -> str:\n    if n < 0:\n        raise ValueError('n must be non-negative')\n    if n == 0:\n        return ''\n    # fold accents/ligatures away everywhere: count and keep only base characters\n    t = ''.join(\n        ch for ch in unicodedata.normalize('NFKD', s)\n        if not unicodedata.category(ch).startswith('M')\n    )\n    if len(t) <= n:\n        return t\n    return t[:n - 1] + '…'\n",
+   "import unicodedata\n\n\ndef truncate(s: str, n: int) -> str:\n    if n < 0:\n        raise ValueError('n must be non-negative')\n    if n == 0:\n        return ''\n    t = unicodedata.normalize('NFD', s)\n    if len(t) <= n:\n        return s\n    if len(t.rstrip()) <= n:\n        # only trailing whitespace was cut: nothing meaningful lost, so no ellipsis\n        return s.rstrip()\n    head = t[:n - 1]\n    # drop dangling whitespace and punctuation before the ellipsis\n    while head and (head[-1].isspace() or unicodedata.category(head[-1]).startswith('P')):\n        head = head[:-1]\n    return head + '…'\n"
+  ],
+  "notes": [
+   "Fixed by constraints: ellipsis is the single char '…' and counts toward n; n==0 -> ''; n<0 -> ValueError; 'characters' are code points of the NFD-decomposed string (so 'é' costs 2 and its accent is dropped at the cut) — all candidates honor this.",
+   "n == 1 on a longer string: return just '…' (candidates 1,2,4,5,6) vs keep the first character with no ellipsis because an ellipsis alone conveys nothing (candidate 3).",
+   "Whitespace immediately before the cut: kept ('hello …', candidates 1,3,5) vs stripped ('hello…', candidates 2,4,6).",
+   "Cut mid-word (most candidates) vs back up to the last word boundary when the cut lands inside a word (candidate 4).",
+   "Cut that removes only trailing whitespace: still ellipsized ('hell…') vs returned trimmed with no ellipsis ('hello') (candidate 6).",
+   "Trailing punctuation before the ellipsis: kept ('hello,…') vs stripped ('hello…') (candidate 6).",
+   "Accents/ligatures: only lost when they fall at the cut (candidates 1-4,6) vs folded away everywhere, even when nothing is truncated ('naïve café' -> 'naive cafe', 'ﬁsh' -> 'fish') (candidate 5)."
+  ],
+  "suggested_args": [
+   [
+    "hello",
+    1
+   ],
+   [
+    "hello world",
+    7
+   ],
+   [
+    "hello world",
+    9
+   ],
+   [
+    "hello   ",
+    5
+   ],
+   [
+    "hello, world",
+    7
+   ],
+   [
+    "naïve café",
+    20
+   ],
+   [
+    "ﬁsh sticks",
+    5
+   ],
+   [
+    "café",
+    4
+   ]
+  ]
  }
 }

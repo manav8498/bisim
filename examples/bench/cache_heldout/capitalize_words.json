@@ -1,0 +1,46 @@
+{
+ "0": {
+  "candidates": [
+   "def capitalize_words(s: str) -> str:\n    return s.title()\n",
+   "def capitalize_words(s: str) -> str:\n    return \" \".join(word.capitalize() for word in s.split())\n",
+   "import re\n\n\ndef capitalize_words(s: str) -> str:\n    return re.sub(r\"\\S+\", lambda m: m.group(0).capitalize(), s)\n",
+   "import re\n\n\ndef capitalize_words(s: str) -> str:\n    return re.sub(r\"(?<!\\S)\\S\", lambda m: m.group(0).upper(), s)\n",
+   "import re\n\n\ndef capitalize_words(s: str) -> str:\n    if not isinstance(s, str):\n        raise TypeError(\"expected str\")\n    if not s.strip():\n        raise ValueError(\"input must contain at least one word\")\n\n    def fix(m: re.Match) -> str:\n        token = m.group(0)\n        for i, ch in enumerate(token):\n            if ch.isalpha():\n                return token[:i] + ch.upper() + token[i + 1:]\n        return token\n\n    return re.sub(r\"\\S+\", fix, s)\n",
+   "import re\n\n\ndef capitalize_words(s: str) -> str:\n    return re.sub(r\"\\b\\w\", lambda m: m.group(0).upper(), s)\n"
+  ],
+  "notes": [
+   "Rest-of-word handling: str.title()/capitalize() force the remaining letters to lowercase (HELLO -> Hello, mcDonald -> Mcdonald), while the upper()-only candidates leave them untouched.",
+   "Word boundary definition: whitespace-only (hello-world -> Hello-world, it's -> It's) vs any non-word char via title()/\\b (Hello-World, It'S, 3Rd, Foo_Bar).",
+   "Whitespace normalization: candidate 2 collapses runs/tabs/newlines and strips ends; all others preserve the original whitespace exactly.",
+   "Words that start with a non-letter: candidate 5 uppercases the first *letter* inside the token ('quoted' -> 'Quoted', 3rd -> 3Rd); candidate 4 only touches the first character and so leaves them alone.",
+   "Empty / whitespace-only input: returned unchanged, collapsed to \"\" by the split/join variant, or rejected with ValueError by candidate 5.",
+   "Unicode case mapping: upper() vs titlecase differ on digraphs and sharp s (ǆemal ß -> Ǆemal SS vs ǅemal Ss)."
+  ],
+  "suggested_args": [
+   [
+    "  hello   world  "
+   ],
+   [
+    "HELLO wORLD mcDonald"
+   ],
+   [
+    "hello-world it's o'neil"
+   ],
+   [
+    "'quoted' 3rd foo_bar"
+   ],
+   [
+    ""
+   ],
+   [
+    "   "
+   ],
+   [
+    "ǆemal ß straße"
+   ],
+   [
+    "hello\tworld\nfoo"
+   ]
+  ]
+ }
+}

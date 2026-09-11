@@ -1,0 +1,143 @@
+{
+ "0": {
+  "candidates": [
+   "def average(xs: list[float]) -> float:\n    return sum(xs) / len(xs)\n",
+   "import math\n\n\ndef average(xs: list[float]) -> float:\n    if not xs:\n        return 0.0\n    return math.fsum(float(x) for x in xs) / len(xs)\n",
+   "import statistics\n\n\ndef average(xs: list[float]) -> float:\n    return float(statistics.mean(xs))\n",
+   "import math\n\n\ndef average(xs: list[float]) -> float:\n    vals = []\n    for x in xs:\n        if x is None:\n            continue\n        if not isinstance(x, (int, float)):\n            raise TypeError(f'non-numeric element: {x!r}')\n        if isinstance(x, float) and math.isnan(x):\n            continue\n        vals.append(x)\n    if not vals:\n        return math.nan\n    return sum(vals) / len(vals)\n",
+   "import math\n\n\ndef average(xs: list[float]) -> float:\n    if len(xs) == 0:\n        raise ValueError('average of empty list is undefined')\n    for x in xs:\n        if isinstance(x, bool) or not isinstance(x, (int, float)):\n            raise TypeError(f'expected a number, got {type(x).__name__}')\n        if not math.isfinite(x):\n            raise ValueError(f'non-finite value: {x!r}')\n    return math.fsum(xs) / len(xs)\n",
+   "import math\n\n\ndef average(xs: list[float]) -> float:\n    mean = 0.0\n    n = 0\n    for x in xs:\n        n += 1\n        mean += (x - mean) / n\n    return mean if n else math.nan\n"
+  ],
+  "notes": [
+   "Empty list: ZeroDivisionError (naive), 0.0 (lenient), StatisticsError (statistics.mean), nan (missing-aware / running), or ValueError (strict).",
+   "None / NaN elements: propagate or TypeError (naive, strict, running), skipped as missing values (missing-aware), or rejected explicitly (strict).",
+   "Numeric strings like '1': coerced via float() (lenient) vs TypeError everywhere else.",
+   "Booleans: counted as 0/1 by most candidates, rejected with TypeError by the strict one.",
+   "Overflow on huge values ([1e308, 1e308]): naive sum gives inf, math.fsum raises OverflowError, exact-rational statistics.mean and incremental mean return 1e308.",
+   "Floating-point precision: naive sum/len vs fsum vs exact rational vs incremental update can differ in the last bits (e.g. ten 0.1s)."
+  ],
+  "suggested_args": [
+   [
+    []
+   ],
+   [
+    [
+     1.0,
+     null,
+     3.0
+    ]
+   ],
+   [
+    [
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1
+    ]
+   ],
+   [
+    [
+     1e+308,
+     1e+308
+    ]
+   ],
+   [
+    [
+     true,
+     false,
+     true
+    ]
+   ],
+   [
+    [
+     "1",
+     "2"
+    ]
+   ],
+   [
+    [
+     1.0,
+     "x",
+     3.0
+    ]
+   ]
+  ]
+ },
+ "2": {
+  "candidates": [
+   "def average(xs: list[float]) -> float:\n    if len(xs) == 0:\n        raise ValueError(\"average of empty list is undefined\")\n    return sum(xs) / len(xs)\n",
+   "import math\n\n\ndef average(xs: list[float]) -> float:\n    if not xs:\n        raise ValueError(\"average of empty list is undefined\")\n    return math.fsum(xs) / len(xs)\n",
+   "from fractions import Fraction\nfrom numbers import Real\n\n\ndef average(xs: list[float]) -> float:\n    if not xs:\n        raise ValueError(\"average of empty list is undefined\")\n    total = Fraction(0)\n    for x in xs:\n        if not isinstance(x, Real):\n            raise TypeError(f\"non-numeric element: {x!r}\")\n        total += Fraction(x)\n    return float(total / len(xs))\n",
+   "def average(xs: list[float]) -> float:\n    if not xs:\n        raise ValueError(\"average of empty list is undefined\")\n    mean = 0.0\n    for i, x in enumerate(xs, start=1):\n        mean += (x - mean) / i\n    return mean\n",
+   "def average(xs: list[float]) -> float:\n    values = [x for x in xs if x is not None]\n    if not values:\n        raise ValueError(\"average requires at least one non-missing value\")\n    return sum(values) / len(values)\n",
+   "def average(xs: list[float]) -> float:\n    if not xs:\n        raise ValueError(\"average of empty list is undefined\")\n    values = [float(x) for x in xs]\n    return sum(values) / len(values)\n"
+  ],
+  "notes": [
+   "Summation precision: naive left-to-right sum, math.fsum, exact rational (Fraction) mean, and Welford running mean round differently on [0.1,0.2,0.3] (0.20000000000000004 vs 0.19999999999999998 vs 0.2) and on [1e16,1.0,-1e16] (0.0 vs 0.3333333333333333).",
+   "Overflow: [1e308,1e308] gives inf (naive), OverflowError (fsum), or the true value 1e308 (exact/running mean); the running mean itself degrades to nan on [1e308,-1e308,1e308] because intermediate differences overflow.",
+   "None as missing data: one candidate silently skips None (so [1,None,3] -> 2.0 and [None,None] -> ValueError like empty); all others raise TypeError.",
+   "Numeric strings: the float()-coercing candidate accepts [\"1\",\"2\",\"3\"] -> 2.0 and raises ValueError on \"abc\"; others raise TypeError for any string.",
+   "Result type: the exact candidate always returns float via float(); others rely on true division (still float for int/bool input)."
+  ],
+  "suggested_args": [
+   [
+    [
+     0.1,
+     0.2,
+     0.3
+    ]
+   ],
+   [
+    [
+     1e+16,
+     1.0,
+     -1e+16
+    ]
+   ],
+   [
+    [
+     1e+308,
+     1e+308
+    ]
+   ],
+   [
+    [
+     1e+308,
+     -1e+308,
+     1e+308
+    ]
+   ],
+   [
+    [
+     1,
+     null,
+     3
+    ]
+   ],
+   [
+    [
+     null,
+     null
+    ]
+   ],
+   [
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ],
+   [
+    [
+     "abc"
+    ]
+   ]
+  ]
+ }
+}

@@ -1,0 +1,45 @@
+{
+ "0": {
+  "candidates": [
+   "def is_palindrome(s: str) -> bool:\n    return s == s[::-1]\n",
+   "def is_palindrome(s: str) -> bool:\n    t = s.lower()\n    return t == t[::-1]\n",
+   "def is_palindrome(s: str) -> bool:\n    t = \"\".join(s.split())\n    return t == t[::-1]\n",
+   "def is_palindrome(s: str) -> bool:\n    t = [c.lower() for c in s if c.isalnum()]\n    return t == t[::-1]\n",
+   "import re\n\n\ndef is_palindrome(s: str) -> bool:\n    t = re.sub(r\"[^a-z0-9]\", \"\", s.lower())\n    if not t:\n        return False\n    return t == t[::-1]\n",
+   "import unicodedata\n\n\ndef is_palindrome(s: str) -> bool:\n    if s == \"\":\n        raise ValueError(\"empty string has no palindrome status\")\n    t = unicodedata.normalize(\"NFC\", s).casefold()\n    t = \"\".join(c for c in t if c.isalnum())\n    return t == t[::-1]\n"
+  ],
+  "notes": [
+   "Case sensitivity: exact comparison vs lower() vs full casefold() (which expands ß to ss).",
+   "Which characters count: every character, everything except whitespace, Unicode alphanumerics only, or ASCII [a-z0-9] only.",
+   "Empty / content-free input: vacuously True, False (nothing to compare), or ValueError.",
+   "Unicode combining sequences: compare raw code points vs NFC-normalize first (composed vs decomposed accented letters).",
+   "Non-ASCII letters: Unicode-aware isalnum keeps them as significant, ASCII regex silently discards them."
+  ],
+  "suggested_args": [
+   [
+    ""
+   ],
+   [
+    "Racecar"
+   ],
+   [
+    "taco cat"
+   ],
+   [
+    "A man, a plan, a canal: Panama"
+   ],
+   [
+    "!?"
+   ],
+   [
+    "ßss"
+   ],
+   [
+    "Éé"
+   ],
+   [
+    "áá"
+   ]
+  ]
+ }
+}

@@ -136,18 +136,41 @@ def select_probe(probes: list[Probe], obs_by_cand: list[list[dict]], alive: list
     return best
 
 
-def select_confirmation(probes: list[Probe], obs_by_cand: list[list[dict]], survivor: int, skip: set[str]) -> int | None:
-    """Index of the most-contested probe (over every candidate ever seen) whose survivor behavior
-    is not yet witnessed, or None."""
+def dissent_signature(obs_by_cand: list[list[dict]], survivor: int, j: int) -> frozenset[int]:
+    """Which candidates disagree with the survivor on probe ``j``."""
+    mine = obs_hash(obs_by_cand[survivor][j])
+    return frozenset(i for i, o in enumerate(obs_by_cand) if obs_hash(o[j]) != mine)
+
+
+def outcome_class(o: dict) -> str:
+    if o.get("timeout"):
+        return "timeout"
+    return "value" if o.get("ok") else f"exc:{o.get('exc')}"
+
+
+def disagreement_kind(obs_by_cand: list[list[dict]], j: int) -> frozenset[str]:
+    """The set of outcome classes the pool produced on probe ``j`` (e.g. {value} or {value, exc:ValueError})."""
+    return frozenset(outcome_class(o[j]) for o in obs_by_cand)
+
+
+def select_confirmation(probes: list[Probe], obs_by_cand: list[list[dict]], survivor: int, skip: set[str],
+                        used_sigs: list[frozenset[int]] = (), used_kinds: set[frozenset[str]] = frozenset()) -> int | None:
+    """Index of the best probe to confirm the survivor's behavior on, or None.
+
+    Preference order: a *kind* of disagreement not yet put to the user (value-vs-value, value-vs-
+    exception, exception-type-vs-exception-type …) > model-suggested inputs > more dissenting
+    candidates > simpler input. Probes whose exact set of dissenters was already asked are skipped.
+    Together these make confirmations cover *different* ambiguities instead of re-asking one.
+    """
     best, best_key = None, None
     for j, p in enumerate(probes):
         if p.id in skip or p.kind == "witness":
             continue
-        mine = obs_hash(obs_by_cand[survivor][j])
-        dissent = sum(1 for o in obs_by_cand if obs_hash(o[j]) != mine)
-        if dissent == 0:
+        sig = dissent_signature(obs_by_cand, survivor, j)
+        if not sig or sig in used_sigs:
             continue
-        key = (dissent, KIND_PREF[p.kind], -len(canon_json(list(p.args))))
+        kind = disagreement_kind(obs_by_cand, j)
+        key = (kind not in used_kinds, KIND_PREF[p.kind], len(sig), -len(canon_json(list(p.args))))
         if best_key is None or key > best_key:
             best, best_key = j, key
     return best
@@ -228,6 +251,7 @@ def mint(intent: str, spec: FunctionSpec, client: CandidateClient, answerer: Ans
     alive = [i for i in range(len(cands)) if _consistent(obs_by_cand[i], probes, ledger)]
     asked = confirmations = regens = 0
     declined: set[str] = set()  # confirmation probes the user quit on
+    confirmed_sigs: list[frozenset[int]] = []  # disagreement patterns already put to the user
 
     def regenerate() -> list[int]:
         nonlocal cands, obs_by_cand
@@ -257,9 +281,11 @@ def mint(intent: str, spec: FunctionSpec, client: CandidateClient, answerer: Ans
         else:
             if confirmations >= max_confirm:
                 break
-            j = select_confirmation(probes, obs_by_cand, alive[0], declined)
+            used_kinds = {disagreement_kind(obs_by_cand, jj) for jj, pp in enumerate(probes) if pp.kind == "witness"}
+            j = select_confirmation(probes, obs_by_cand, alive[0], declined, confirmed_sigs, used_kinds)
             if j is None:
                 break
+            confirmed_sigs.append(dissent_signature(obs_by_cand, alive[0], j))
             confirm = True
             pool = list(range(len(cands)))  # show every behavior ever proposed for this input
         groups: dict[str, Option] = {}

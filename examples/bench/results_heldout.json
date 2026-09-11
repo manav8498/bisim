@@ -1,0 +1,57 @@
+[
+ {
+  "name": "is_palindrome",
+  "candidates": 6,
+  "classes": 5,
+  "questions": 6,
+  "mint_correct": true,
+  "pick1_correct": false,
+  "probes": 55,
+  "seconds": 69.34901404380798,
+  "error": ""
+ },
+ {
+  "name": "average",
+  "candidates": 6,
+  "classes": 6,
+  "questions": 7,
+  "mint_correct": true,
+  "pick1_correct": false,
+  "probes": 54,
+  "seconds": 220.6660349369049,
+  "error": ""
+ },
+ {
+  "name": "capitalize_words",
+  "candidates": 6,
+  "classes": 6,
+  "questions": 4,
+  "mint_correct": false,
+  "pick1_correct": false,
+  "probes": 55,
+  "seconds": 72.9189658164978,
+  "error": ""
+ },
+ {
+  "name": "days_in_month",
+  "candidates": 6,
+  "classes": 4,
+  "questions": 5,
+  "mint_correct": true,
+  "pick1_correct": true,
+  "probes": 56,
+  "seconds": 54.017892837524414,
+  "error": ""
+ },
+ {
+  "name": "sign",
+  "candidates": 6,
+  "classes": 6,
+  "questions": 7,
+  "mint_correct": true,
+  "pick1_correct": false,
+  "probes": 51,
+  "seconds": 127.15917491912842,
+  "error": ""
+ }
+]

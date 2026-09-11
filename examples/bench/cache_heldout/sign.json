@@ -1,0 +1,89 @@
+{
+ "0": {
+  "candidates": [
+   "def sign(x: float) -> int:\n    return (x > 0) - (x < 0)\n",
+   "import math\n\ndef sign(x: float) -> int:\n    return int(math.copysign(1.0, x))\n",
+   "import math\n\ndef sign(x: float) -> int:\n    if math.isnan(x):\n        raise ValueError(\"sign of NaN is undefined\")\n    return 1 if x >= 0 else -1\n",
+   "import math\n\ndef sign(x: float) -> int:\n    if isinstance(x, bool) or not isinstance(x, (int, float)):\n        raise TypeError(f\"expected a real number, got {type(x).__name__}\")\n    if math.isnan(x):\n        raise ValueError(\"sign of NaN is undefined\")\n    if x > 0:\n        return 1\n    if x < 0:\n        return -1\n    return 0\n",
+   "import math\n\ndef sign(x: float) -> int:\n    if math.isnan(x):\n        return 0\n    if x == 0:\n        return -1 if math.copysign(1.0, x) < 0 else 0\n    return 1 if x > 0 else -1\n",
+   "import math\n\nEPS = 1e-9\n\ndef sign(x: float) -> int:\n    if math.isnan(x):\n        return 0\n    if abs(x) <= EPS:\n        return 0\n    return 1 if x > 0 else -1\n"
+  ],
+  "notes": [
+   "Zero: three-way signum returns 0 (C1,C4,C5,C6) vs two-way 'nonnegative is +1' (C3) vs sign-bit copysign where 0.0->1 (C2).",
+   "Negative zero: -0.0 collapses to 0 (C1,C4,C6), maps to -1 via sign bit (C2,C5).",
+   "NaN: silently 0 (C1,C5,C6), raises ValueError (C3,C4), or follows the sign bit -> 1 (C2).",
+   "Tiny values: exact comparison (all but C6) vs epsilon tolerance where |x|<=1e-9 counts as zero (C6).",
+   "Invalid types: C4 raises TypeError for bool/non-numeric; others accept anything comparable (True -> 1).",
+   "Infinity: all return +/-1 (via comparison or sign bit) — included to confirm no candidate rejects it."
+  ],
+  "suggested_args": [
+   [
+    0.0
+   ],
+   [
+    -0.0
+   ],
+   [
+    NaN
+   ],
+   [
+    1e-12
+   ],
+   [
+    -1e-12
+   ],
+   [
+    true
+   ],
+   [
+    Infinity
+   ],
+   [
+    -Infinity
+   ]
+  ]
+ },
+ "3": {
+  "candidates": [
+   "def sign(x: float) -> int:\n    if x != x:\n        raise ValueError('sign is undefined for NaN')\n    if x > 0:\n        return 1\n    if x < 0:\n        return -1\n    return 0\n",
+   "import math\n\n\ndef sign(x: float) -> int:\n    v = float(x)\n    if math.isnan(v):\n        raise ValueError('sign is undefined for NaN')\n    return (v > 0) - (v < 0)\n",
+   "import math\n\n\ndef sign(x: float) -> int:\n    if not math.isfinite(x):\n        raise ValueError('sign is only defined for finite numbers')\n    return (x > 0) - (x < 0)\n",
+   "EPS = 1e-9\n\n\ndef sign(x: float) -> int:\n    if x != x:\n        raise ValueError('sign is undefined for NaN')\n    if abs(x) < EPS:\n        return 0\n    return 1 if x > 0 else -1\n",
+   "import math\n\n\ndef sign(x: float) -> int:\n    try:\n        v = float(x)\n    except (TypeError, ValueError):\n        raise TypeError(f'sign expects a real number, got {type(x).__name__}') from None\n    if not math.isfinite(v):\n        raise ValueError('sign is only defined for finite numbers')\n    return (v > 0) - (v < 0)\n",
+   "import math\nimport numbers\n\n\ndef sign(x: float) -> int:\n    if not isinstance(x, numbers.Real):\n        raise ValueError(f'not a real number: {x!r}')\n    if math.isnan(x):\n        raise ValueError('sign is undefined for NaN')\n    if x == 0:\n        return 0\n    return 1 if x > 0 else -1\n"
+  ],
+  "notes": [
+   "Infinity: +inf/-inf have a sign (1/-1) vs. non-finite is rejected with ValueError just like NaN (candidates 3, 5).",
+   "Numeric strings like '3' or ' -2.5 ': coerced via float() and accepted (candidates 2, 5) vs. rejected as wrong type.",
+   "Near-zero values: exact comparison (1e-300 -> 1) vs. epsilon tolerance where |x| < 1e-9 counts as 0 (candidate 4).",
+   "Non-numeric input (None, 'abc'): TypeError (duck-typed comparison / float() failure) vs. ValueError 'not a real number' (candidate 6) vs. coercion failure remapped to TypeError even for unparsable strings (candidate 5).",
+   "NaN detection strategy: x != x duck typing vs. math.isnan/isfinite vs. float() coercion — changes which non-float types are accepted at all."
+  ],
+  "suggested_args": [
+   [
+    Infinity
+   ],
+   [
+    -Infinity
+   ],
+   [
+    "3"
+   ],
+   [
+    1e-300
+   ],
+   [
+    -1e-10
+   ],
+   [
+    null
+   ],
+   [
+    "abc"
+   ],
+   [
+    " -2.5 "
+   ]
+  ]
+ }
+}

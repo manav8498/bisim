@@ -35,7 +35,8 @@ wrote tests/test_median_witness.py
 address bsm1:0ced364a0934a3b862454ebfbc7b5221499ed4aee0d6828ebaca9942fce4fcc1
 ```
 
-Six behaviorally distinct candidates, two questions, one address. (Real run, Claude Opus 5, 2026-09-11.)
+Six behaviorally distinct candidates, two questions to converge (plus up to three confirmations — see
+below), one address. (Real run, Claude Opus 5, 2026-09-11.)
 
 ## Why
 
@@ -129,12 +130,53 @@ address   = "bsm1:" + sha256("bisim/1" | probegen | sig_hash | merkle_root{ sha2
    boundaries, then the simplest input) and asks. You choose an option, type the right output, mark the
    input invalid (a precondition), or stop. Each answer is saved before the next question.
 5. If your answer matches no candidate, the model is asked again with the witnesses as hard
-   constraints. If nothing matches after that, `mint` stops — with your witnesses on disk.
-6. The survivor is written out, pushed to `.bisim/store/<address>/`, and the witnesses become a pytest
+   constraints (up to two regeneration rounds). If nothing matches, `mint` stops — with your
+   witnesses on disk.
+6. **Confirmation.** Once one class survives, it has only been checked where *surviving* candidates
+   disagreed. So `mint` shows you up to `--confirm N` (default 3) inputs that were contested by *any*
+   candidate ever proposed — e.g. "on `('hello', -1)` the chosen implementation returns `''`; others
+   raised `ValueError`" — and you approve or correct. A correction prunes the survivor and triggers
+   regeneration. This step is what the original TiCoder protocol lacks, and it is where the benchmark
+   below recovers its misses.
+7. The survivor is written out, pushed to `.bisim/store/<address>/`, and the witnesses become a pytest
    file — plain asserts, no `bisim` dependency.
 
 This is the TiCoder loop (Microsoft, 2022/2024) with a different output: not a ranked list you discard,
 but a persistent, versioned, content-addressed record of intent that `diff` and `check` enforce forever.
+
+## Evaluation
+
+`python -m bisim.evalbench` runs `mint` against a simulated user who answers every question from a
+hidden reference implementation (the protocol TiCoder used to evaluate at scale). Candidates come from
+Claude Opus 5 via Claude Code; every generation is cached under `examples/bench/cache*/`, so the tables
+below reproduce offline with no model access. "First-candidate correct" is the baseline of taking the
+model's first implementation as-is; "mint correct" means the implementation `mint` chose is
+behaviorally identical to the reference on the full probe set.
+
+**Development set — 10 tasks (`examples/bench/tasks.json`).** The confirmation heuristic was tuned
+against these, so treat this as in-sample:
+
+| | first-candidate correct | mint correct | mean behavior classes | mean questions |
+|---|---|---|---|---|
+| dev (n=10) | 6/10 | **10/10** | 4.9 | 5.6 |
+
+**Held-out set — 5 tasks (`examples/bench/heldout.json`)**, written after the protocol was frozen and
+run once:
+
+| | first-candidate correct | mint correct | mean behavior classes | mean questions |
+|---|---|---|---|---|
+| held-out (n=5) | 1/5 | **4/5** | 5.4 | 5.8 |
+
+Per-task tables are in `examples/bench/results*.json`. Two things worth knowing:
+
+- Six candidates for one plain-English intent split into **~5 distinct behaviors** on average. That is
+  the intent gap, measured.
+- The held-out miss (`capitalize_words`) shows the protocol's hard limit: the reference split words on
+  single spaces only; *no* candidate ever behaved that way, and none of the confirmation inputs
+  happened to contain a tab or newline, so nothing contradicted the survivor and no regeneration was
+  triggered. `mint` can only converge on behaviors the model proposes or that a witness forces it to
+  propose. (One dev-set reference, `round_half`, was corrected during development: it used the
+  `floor(x + 0.5)` idiom whose float artifact contradicts "nearest integer"; the fix is in the file.)
 
 ## Prior art, and what is actually new here
 
@@ -174,7 +216,8 @@ regenerating them · `bisim check` as a GitHub Action.
 
 ```bash
 uv venv && uv pip install -e ".[dev]"
-.venv/bin/pytest -q           # 132 tests, ~10 s, offline
+.venv/bin/pytest -q           # 140 tests, ~12 s, offline
+python -m bisim.evalbench     # reproduce the evaluation from cached generations
 bash examples/demo.sh
 ```
 
