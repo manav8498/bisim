@@ -22,6 +22,7 @@ class FunctionSpec:
     module_path: str
     lineno: int
     lines: list[int] = field(default_factory=list)  # executable statement lines inside the body
+    decisions: list[dict] = field(default_factory=list)  # {line, kind, body: [lines]} for if/while/for
 
     def signature_str(self) -> str:
         return "(" + ", ".join(f"{n}: {t}" for n, t in self.params) + f") -> {self.returns}"
@@ -46,7 +47,20 @@ def _spec_from_def(node, src: str, path: str) -> FunctionSpec:
     if node.returns is None:
         raise Unsupported(f"{node.name}: missing return type hint")
     source = ast.get_source_segment(src, node) or ""
-    return FunctionSpec(node.name, params, ast.unparse(node.returns), source, path, node.lineno, _executable_lines(node))
+    return FunctionSpec(node.name, params, ast.unparse(node.returns), source, path, node.lineno, _executable_lines(node), _decisions(node))
+
+
+def _decisions(node) -> list[dict]:
+    """Decision points (if/elif/while/for) with the executable lines of their true-branch body."""
+    out = []
+    for sub in ast.walk(node):
+        if isinstance(sub, (ast.If, ast.While, ast.For)):
+            body = sorted({st.lineno for b in sub.body for st in ast.walk(b) if isinstance(st, ast.stmt)})
+            if not body or body[0] == sub.lineno:  # one-liner bodies are not measurable by line events
+                continue
+            kind = {ast.If: "if", ast.While: "while", ast.For: "for"}[type(sub)]
+            out.append({"line": sub.lineno, "kind": kind, "body": body})
+    return sorted(out, key=lambda d: d["line"])
 
 
 def _executable_lines(node) -> list[int]:
@@ -83,6 +97,7 @@ class ClassSpec:
     module_path: str
     lineno: int
     lines: list[int] = field(default_factory=list)
+    decisions: list[dict] = field(default_factory=list)
 
     def public_methods(self) -> list[str]:
         return sorted(m for m in self.methods if not m.startswith("_"))
@@ -167,7 +182,8 @@ def _class_spec(node: ast.ClassDef, src: str, path: str) -> ClassSpec:
                 raise Unsupported(f"{node.name}.__init__: missing type hint for parameter '{arg.arg}'")
             init_params.append((arg.arg, ast.unparse(arg.annotation)))
     lines = sorted({l for item in node.body if isinstance(item, ast.FunctionDef) for l in _executable_lines(item)})
-    return ClassSpec(node.name, init_params, methods, is_dc, ast.get_source_segment(src, node) or "", path, node.lineno, lines)
+    decisions = sorted((d for item in node.body if isinstance(item, ast.FunctionDef) for d in _decisions(item)), key=lambda d: d["line"])
+    return ClassSpec(node.name, init_params, methods, is_dc, ast.get_source_segment(src, node) or "", path, node.lineno, lines, decisions)
 
 
 def extract_class(path: str, name: str) -> ClassSpec:

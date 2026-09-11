@@ -252,18 +252,28 @@ def main():
     want_cov = bool(job.get("coverage"))
     target_file = os.path.abspath(job["module"])
 
-    def tracer_for(hits: set):
+    def tracer_for(hits: set, arcs: set):
+        prev: dict = {}
+
         def trace(frame, event, arg):
             if frame.f_code.co_filename != target_file:
                 return None
-            if event == "line":
+            if event == "call":
+                prev[frame] = None
+            elif event == "line":
                 hits.add(frame.f_lineno)
+                arcs.add((prev.get(frame), frame.f_lineno))
+                prev[frame] = frame.f_lineno
+            elif event == "return":
+                arcs.add((prev.get(frame), -1))
+                prev.pop(frame, None)
             return trace
         return trace
 
     for p in job["probes"]:
         buf = io.StringIO()
         hits: set = set()
+        arcs: set = set()
         cwd = tempfile.mkdtemp(prefix="bisim-")  # fresh scratch directory per probe: no state leaks between probes
         os.chdir(cwd)
         EFFECTS.reset(cwd)
@@ -272,7 +282,7 @@ def main():
             signal.setitimer(signal.ITIMER_REAL, job["timeout"])
             try:
                 if want_cov:
-                    sys.settrace(tracer_for(hits))
+                    sys.settrace(tracer_for(hits, arcs))
                 with contextlib.redirect_stdout(buf):
                     if cls is None:
                         rec = {"ok": True, "value": canon(fn(*args))}
@@ -292,6 +302,7 @@ def main():
             rec["effects"] = effects
         if want_cov:
             rec["cov"] = sorted(hits)
+            rec["arcs"] = sorted([a if a is not None else -2, b] for a, b in arcs)
         out.write(json.dumps(rec, sort_keys=True) + "\n")
         out.flush()
 

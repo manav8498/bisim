@@ -55,6 +55,11 @@ class Target:
             return list(self.spec.methods[self.method].lines)
         return list(self.spec.lines)
 
+    def decisions(self) -> list[dict]:
+        if self.kind == "method":
+            return list(self.spec.methods[self.method].decisions)
+        return list(self.spec.decisions)
+
     def describe(self) -> dict:
         if self.kind == "function":
             return {"kind": "function", "name": self.spec.name, "params": [list(p) for p in self.spec.params], "returns": self.spec.returns}
@@ -131,7 +136,7 @@ class Target:
         return observe_cov(self.path, fn, probes, timeout, class_name=self.class_name)
 
     def manifest(self, probes: list[Probe], obs: list[dict], cov: list[set[int]] | None = None) -> Manifest:
-        summary = coverage_summary(self.lines(), cov) if cov is not None else None
+        summary = coverage_summary(self.lines(), cov, self.decisions()) if cov is not None else None
         return build_manifest_for(self.describe(), self.sig(), probes, obs, summary)
 
     def source(self) -> str:

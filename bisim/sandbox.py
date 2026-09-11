@@ -18,6 +18,18 @@ class SandboxError(Exception):
     pass
 
 
+class CovSet(set):
+    """Set of executed lines, plus the (from, to) line arcs that were taken (-1 = return, -2 = entry)."""
+
+    def __init__(self, lines=(), arcs=()):
+        super().__init__(lines)
+        self.arcs: set[tuple[int, int]] = set(arcs)
+
+    def __or__(self, other):
+        out = CovSet(set(self) | set(other), self.arcs | getattr(other, "arcs", set()))
+        return out
+
+
 @dataclass
 class Nondeterministic(SandboxError):
     probe: Probe
@@ -72,7 +84,11 @@ def _run(module_path: str, func_name: str, probes: list[Probe], timeout: float, 
     lines = _spawn(job, total_timeout=len(probes) * timeout + 15)
     if len(lines) != len(probes):
         raise SandboxError(f"expected {len(probes)} observations, got {len(lines)}")
-    cov = [set(rec.pop("cov", [])) for rec in lines]  # coverage is diagnostic: never part of an observation
+    cov = []
+    for rec in lines:  # coverage is diagnostic: never part of an observation
+        hits = set(rec.pop("cov", []))
+        arcs = {(a, b) for a, b in rec.pop("arcs", [])}
+        cov.append(CovSet(hits, arcs))
     return lines, cov
 
 

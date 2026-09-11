@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass, field
 
 from .canon import canon, dumps
+from .address import coverage_summary
 from .core import find_root, hash_target
 from .probes import Probe
 from .sandbox import DEFAULT_TIMEOUT, Nondeterministic, SandboxError
@@ -23,7 +24,7 @@ _SHAPES = {
 }
 
 
-def build_reach_prompt(target, missed: list[int], max_inputs: int) -> str:
+def build_reach_prompt(target, missed: list[int], max_inputs: int, branches: list[str] = ()) -> str:
     spec = target.spec
     src_lines = spec.source.splitlines()
     targets = []
@@ -32,10 +33,12 @@ def build_reach_prompt(target, missed: list[int], max_inputs: int) -> str:
         text = src_lines[idx].strip() if 0 <= idx < len(src_lines) else "?"
         targets.append(f"  line {ln}: {text}")
     head = "Function" if target.kind == "function" else "Class"
+    if branches:
+        targets += [f"  {b} branch never taken" for b in branches]
     return (
         f"{head} (starts at line {spec.lineno}):\n```python\n{spec.source}\n```\n"
         f"Target: {target.signature_str()}\n"
-        f"Lines never executed by the current probes:\n" + "\n".join(targets) + "\n"
+        f"Lines / branches never executed by the current probes:\n" + "\n".join(targets) + "\n"
         f"Each entry of \"inputs\" must look like: {_SHAPES[target.kind]}\n"
         f"Propose up to {max_inputs} entries that execute these lines."
     )
@@ -97,7 +100,7 @@ def reach(path: str, name: str, client, root=None, rounds: int = 2, max_inputs: 
     r = hash_target(path, name, root=root, timeout=timeout)
     cov = r.manifest.coverage or {"missed": []}
     result = ReachResult(list(cov["missed"]), list(cov["missed"]), coverage_after=cov, address_after=r.manifest.address)
-    if not cov["missed"]:
+    if not cov["missed"] and not cov.get("branches", {}).get("missed"):
         return result
     target = r.target
     ledger = load_ledger(root, path, name)
@@ -106,9 +109,11 @@ def reach(path: str, name: str, client, root=None, rounds: int = 2, max_inputs: 
     known = {p.id for p in r.probes}
     for _ in range(rounds):
         missed = result.missed_after
-        if not missed:
+        missed_branches = (result.coverage_after or {}).get("branches", {}).get("missed", [])
+        if not missed and not missed_branches:
             break
-        proposals = parse_inputs(client.complete(REACH_SYSTEM, build_reach_prompt(target, missed, max_inputs)))
+        branches = (result.coverage_after or {}).get("branches", {}).get("missed", [])
+        proposals = parse_inputs(client.complete(REACH_SYSTEM, build_reach_prompt(target, missed, max_inputs, branches)))
         if not proposals:
             break
         for entry in proposals[:max_inputs]:
@@ -126,8 +131,14 @@ def reach(path: str, name: str, client, root=None, rounds: int = 2, max_inputs: 
             except (SandboxError, Nondeterministic, ValueError):
                 result.rejected += 1
                 continue
-            hit = sorted(set(missed) & cov_sets[0])
-            if not hit:
+            hit = sorted(set(missed) & set(cov_sets[0]))
+            new_branch = False
+            if not hit and missed_branches:
+                # does it take a branch that was never taken?
+                s1 = coverage_summary(target.lines(), [cov_sets[0]], target.decisions()) or {}
+                taken_now = set((result.coverage_after or {}).get("branches", {}).get("missed", [])) - set(s1.get("branches", {}).get("missed", []))
+                new_branch = bool(taken_now)
+            if not hit and not new_branch:
                 result.rejected += 1
                 continue
             ledger.suggested.append(canon(list(args)))

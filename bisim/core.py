@@ -102,8 +102,10 @@ def hash_target(path: str, name: str, root=None, timeout: float = DEFAULT_TIMEOU
     if summary and summary["missed"]:
         warnings.append(
             f"uncovered: {len(probes)} probes never executed line(s) {', '.join(map(str, summary['missed']))} "
-            f"of {t.name} — add a witness that reaches them, or raise --count"
+            f"of {t.name} — add a witness that reaches them, run `bisim reach`, or raise --count"
         )
+    if summary and summary.get("branches", {}).get("missed"):
+        warnings.append(f"branches never taken: {', '.join(summary['branches']['missed'])}")
     return HashResult(m, t.spec, probes, warnings, t)
 
 
@@ -176,9 +178,9 @@ def diff_targets(old_path: str, old_name: str, new_path: str, new_name: str, roo
         probes = merge_probes(po, pn)
         oo, co = to.observe(probes, timeout)
         on, cn = tn.observe(probes, timeout)
-        summ_o, summ_n = coverage_summary(to.lines(), co), coverage_summary(tn.lines(), cn)
-        hit = (len(summ_o["hit"]) if summ_o else 0, len(summ_n["hit"]) if summ_n else 0)
-        complete = all(s is None or not s["missed"] for s in (summ_o, summ_n))
+        summ_o, summ_n = coverage_summary(to.lines(), co, to.decisions()), coverage_summary(tn.lines(), cn, tn.decisions())
+        hit = tuple((len(s["hit"]) + s.get("branches", {}).get("hit", 0)) if s else 0 for s in (summ_o, summ_n))
+        complete = all(s is None or (not s["missed"] and not s.get("branches", {}).get("missed")) for s in (summ_o, summ_n))
         if not grow or complete or hit == prev_hit or count >= max_count:
             break
         prev_hit = hit
@@ -193,6 +195,8 @@ def diff_targets(old_path: str, old_name: str, new_path: str, new_name: str, roo
     for label, t, summ in (("old", to, summ_o), ("new", tn, summ_n)):
         if summ and summ["missed"]:
             warnings.append(f"{label} {os.path.basename(t.path)}:{t.name} line(s) {', '.join(map(str, summ['missed']))} never executed by {len(probes)} probes")
+        if summ and summ.get("branches", {}).get("missed"):
+            warnings.append(f"{label} {os.path.basename(t.path)}:{t.name} branches never taken: {', '.join(summ['branches']['missed'])}")
     code = 0 if not changes else (2 if any(c.kind == "witness" for c in changes) else 1)
     return DiffResult(not changes, False, mo.address, mn.address, changes, code, warnings, len(probes), rounds,
                       {"old": summ_o, "new": summ_n})

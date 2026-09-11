@@ -101,7 +101,7 @@ def test_cli_class_targets_end_to_end(tmp_path, capsys):
     c = w(tmp_path, "c.py", STACK3)
     code = main(["hash", f"{a}:Stack.push", "--root", str(tmp_path)])
     out = capsys.readouterr().out
-    assert code == 0 and "Stack(capacity: int).push(x: int) -> None" in out and "coverage=100.0%" in out
+    assert code == 0 and "Stack(capacity: int).push(x: int) -> None" in out and "lines 100.0%" in out
     code = main(["diff", f"{a}:Stack", f"{c}:Stack", "--root", str(tmp_path)])
     out = capsys.readouterr().out
     assert code == 1 and "CHANGED" in out and "push(" in out and "→ state" in out

@@ -62,7 +62,9 @@ def cmd_hash(args) -> int:
         if m.coverage:
             cov = m.coverage
             missed = f"  missed lines: {', '.join(map(str, cov['missed']))}" if cov["missed"] else ""
-            print(f"  coverage={cov['pct']}% of {len(cov['executable'])} executable lines{missed}")
+            br = cov.get("branches")
+            brs = f", branches {br['pct']}% ({br['hit']}/{br['total']})" if br else ""
+            print(f"  coverage: lines {cov['pct']}% ({len(cov['hit'])}/{len(cov['executable'])}){brs}{missed}")
         for w in r.warnings:
             print(f"  warning: {w}")
         if args.push:

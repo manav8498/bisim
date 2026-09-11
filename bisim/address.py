@@ -82,20 +82,39 @@ class Manifest:
         return out
 
 
-def coverage_summary(spec, cov: list[set[int]]) -> dict | None:
-    """Line coverage of the target body by the probe set. ``None`` if the spec has no line info.
-    ``spec`` may be anything with a ``lines`` attribute, or a plain list of lines."""
+def coverage_summary(spec, cov: list, decisions: list[dict] | None = None) -> dict | None:
+    """Line and branch coverage of the target body by the probe set. ``None`` if no line info.
+    ``spec`` may be anything with ``lines``/``decisions`` attributes, or a plain list of lines."""
     lines = spec if isinstance(spec, list) else getattr(spec, "lines", [])
+    if decisions is None:
+        decisions = [] if isinstance(spec, list) else getattr(spec, "decisions", [])
     if not lines:
         return None
     hit_all: set[int] = set()
+    arcs: set[tuple[int, int]] = set()
     for c in cov:
-        hit_all |= c
+        hit_all |= set(c)
+        arcs |= getattr(c, "arcs", set())
     executable = list(lines)
     hit = sorted(l for l in executable if l in hit_all)
     missed = sorted(l for l in executable if l not in hit_all)
     pct = round(100.0 * len(hit) / len(executable), 1) if executable else 100.0
-    return {"executable": executable, "hit": hit, "missed": missed, "pct": pct}
+    out = {"executable": executable, "hit": hit, "missed": missed, "pct": pct}
+    if decisions:
+        total, taken, missed_b = 0, 0, []
+        for d in decisions:
+            body = set(d["body"])
+            outs = {b for a, b in arcs if a == d["line"]}
+            t = bool(outs & body)
+            f = any((o not in body and o != d["line"]) for o in outs)
+            total += 2
+            taken += int(t) + int(f)
+            if not t:
+                missed_b.append(f"L{d['line']} true")
+            if not f:
+                missed_b.append(f"L{d['line']} false")
+        out["branches"] = {"total": total, "hit": taken, "pct": round(100.0 * taken / total, 1) if total else 100.0, "missed": missed_b}
+    return out
 
 
 def _obs_opaque(o: dict) -> bool:
