@@ -118,13 +118,15 @@ class ClaudeCodeClient:
         self._run = runner or subprocess.run
 
     def generate(self, intent: str, spec: FunctionSpec, k: int, witnesses: list[Witness]) -> Generation:
+        import subprocess
+
         cmd = [
-            self.binary, "-p", "--bare", "--no-session-persistence", "--output-format", "text",
+            self.binary, "-p", "--no-session-persistence", "--output-format", "text",
             "--tools", "", "--model", self.model, "--system-prompt", SYSTEM,
             build_prompt(intent, spec, k, witnesses),
         ]
         try:
-            proc = self._run(cmd, capture_output=True, text=True, timeout=self.timeout)
+            proc = self._run(cmd, capture_output=True, text=True, timeout=self.timeout, stdin=subprocess.DEVNULL)
         except FileNotFoundError:
             raise RuntimeError("Claude Code (`claude`) is not installed or not on PATH")
         if proc.returncode != 0:

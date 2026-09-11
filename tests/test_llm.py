@@ -105,7 +105,7 @@ def test_claude_code_client_shells_out(tmp_path):
     c = ClaudeCodeClient(runner=runner, binary="claude-fake")
     g = c.generate("id", parse_signature("def f(x: int) -> int"), 2, [])
     assert g.candidates and g.suggested_args == [[1]]
-    assert calls["cmd"][1:3] == ["-p", "--bare"] and "--tools" in calls["cmd"] and "claude-opus-5" in calls["cmd"]
+    assert calls["cmd"][1:3] == ["-p", "--no-session-persistence"] and "--tools" in calls["cmd"] and "claude-opus-5" in calls["cmd"]
 
 
 def test_claude_code_client_failure():

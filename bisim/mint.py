@@ -93,7 +93,11 @@ class ConsoleAnswerer:
             print(f"  [{i}] {describe_obs(o.obs)}    ({o.count} candidate{'s' if o.count != 1 else ''})")
         print("  o:<literal>  give the correct output    x  invalid input (precondition)    q  stop asking")
         while True:
-            s = input("> ").strip()
+            try:
+                s = input("> ").strip()
+            except EOFError:
+                print("  (no more input — stopping)")
+                return Answer("quit")
             if s == "q":
                 return Answer("quit")
             if s == "x":
