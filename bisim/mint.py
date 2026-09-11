@@ -16,18 +16,49 @@ import os
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from .address import build_manifest, obs_hash
+from .address import build_manifest_for, obs_hash
 from .canon import canon, canon_json, dumps, parse_literal, uncanon
 from .core import merge_probes
-from .extract import FunctionSpec
+from .extract import ClassSpec, FunctionSpec
 from .fmt import describe_obs
-from .probes import Probe, generate_type_probes
-from .sandbox import DEFAULT_TIMEOUT, Nondeterministic, SandboxError, observe_source
+from .probes import Probe, class_sig_hash, generate_sequence_probes, generate_type_probes, sig_hash
+from .sandbox import DEFAULT_TIMEOUT, Nondeterministic, SandboxError
 from .store import push
 from .witness import Ledger, Witness, add_witness, ledger_probes, load_ledger, save_ledger
 
 KIND_PREF = {"type": 0, "suggested": 1, "witness": 2}
 BROKEN_EXCS = {"NameError", "ImportError", "ModuleNotFoundError", "SyntaxError", "IndentationError", "UnboundLocalError"}
+
+
+def is_class_spec(spec) -> bool:
+    return isinstance(spec, ClassSpec)
+
+
+def observe_candidate(source: str, name: str, probes: list[Probe], timeout: float = DEFAULT_TIMEOUT, prelude: str = "") -> list[dict]:
+    """Write ``source`` to a scratch module and observe target ``name`` (function, Class or Class.method) on ``probes``."""
+    import tempfile
+
+    from .target import Target
+
+    with tempfile.TemporaryDirectory(prefix="bisim-src-") as d:
+        path = os.path.join(d, "candidate.py")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(prelude + "\n" + source + "\n")
+        return Target.load(path, name).observe(probes, timeout)[0]
+
+
+def _type_probes(spec) -> list[Probe]:
+    return generate_sequence_probes(spec) if is_class_spec(spec) else generate_type_probes(spec)
+
+
+def _sig(spec) -> str:
+    return class_sig_hash(spec) if is_class_spec(spec) else sig_hash(spec)
+
+
+def _desc(spec) -> dict:
+    if is_class_spec(spec):
+        return {"kind": "class", "name": spec.name, "class": spec.name, "params": [list(p) for p in spec.init_params], "methods": spec.public_methods()}
+    return {"kind": "function", "name": spec.name, "params": [list(p) for p in spec.params], "returns": spec.returns}
 
 
 @dataclass
@@ -75,7 +106,7 @@ class OracleAnswerer:
         self.src, self.fn, self.timeout = reference_source, func_name, timeout
 
     def ask(self, q: Question) -> Answer:
-        rec = observe_source(self.src, self.fn, [q.probe], self.timeout)[0]
+        rec = observe_candidate(self.src, self.fn, [q.probe], self.timeout)[0]
         return Answer("obs", value=rec)
 
 
@@ -176,27 +207,53 @@ def select_confirmation(probes: list[Probe], obs_by_cand: list[list[dict]], surv
     return best
 
 
-def _validate_suggested(spec: FunctionSpec, raw: list) -> list[Probe]:
+def _validate_suggested(spec, raw: list) -> list[Probe]:
     out = []
-    for args in raw or []:
-        if not isinstance(args, list) or len(args) != len(spec.params):
-            continue
+    for entry in raw or []:
+        if is_class_spec(spec):
+            if not isinstance(entry, dict) or not isinstance(entry.get("init"), list) or len(entry["init"]) != len(spec.init_params):
+                continue
+            calls = entry.get("calls")
+            if not isinstance(calls, list) or not calls:
+                continue
+            seq = []
+            for c in calls:
+                if not (isinstance(c, list) and len(c) == 2 and isinstance(c[0], str) and isinstance(c[1], list)):
+                    seq = None
+                    break
+                if c[0] not in spec.methods or len(c[1]) != len(spec.methods[c[0]].params):
+                    seq = None
+                    break
+                seq.append((c[0], tuple(c[1])))
+            if seq is None:
+                continue
+            args = (tuple(entry["init"]), tuple(seq))
+        else:
+            if not isinstance(entry, list) or len(entry) != len(spec.params):
+                continue
+            args = tuple(entry)
         try:
             uncanon(canon(list(args)))
         except Exception:  # noqa: BLE001
             continue
-        out.append(Probe(tuple(args), "suggested"))
+        out.append(Probe(args, "suggested"))
     return out
 
 
-def _observe_candidates(sources: list[str], spec: FunctionSpec, probes: list[Probe], timeout: float) -> tuple[list[str], list[list[dict]]]:
+def _broken(o: dict) -> bool:
+    if (not o.get("ok", True)) and o.get("exc") in BROKEN_EXCS:
+        return True
+    return any((not st.get("ok", True)) and st.get("exc") in BROKEN_EXCS for st in o.get("steps", []))
+
+
+def _observe_candidates(sources: list[str], spec, probes: list[Probe], timeout: float) -> tuple[list[str], list[list[dict]]]:
     keep, obs = [], []
     for src in sources:
         try:
-            o = observe_source(src, spec.name, probes, timeout)
-        except (Nondeterministic, SandboxError):
+            o = observe_candidate(src, spec.name, probes, timeout)
+        except (Nondeterministic, SandboxError, Exception):  # noqa: BLE001 - unparseable / unsupported candidates are skipped
             continue
-        if any((not r.get("ok", True)) and r.get("exc") in BROKEN_EXCS for r in o):
+        if any(_broken(r) for r in o):
             continue
         keep.append(src)
         obs.append(o)
@@ -213,7 +270,7 @@ def _consistent(obs: list[dict], probes: list[Probe], ledger: Ledger) -> bool:
 
 
 def _address_of(spec, probes, obs) -> str:
-    return build_manifest(spec, probes, obs).address
+    return build_manifest_for(_desc(spec), _sig(spec), probes, obs).address
 
 
 @dataclass
@@ -236,7 +293,7 @@ def mint(intent: str, spec: FunctionSpec, client: CandidateClient, answerer: Ans
     ledger.signature = spec.signature_str()
 
     gen = client.generate(intent, spec, k, ledger.witnesses)
-    type_probes = generate_type_probes(spec)
+    type_probes = _type_probes(spec)
     suggested = _validate_suggested(spec, gen.suggested_args)
     for p in suggested:
         c = canon(list(p.args))
@@ -333,7 +390,7 @@ def mint(intent: str, spec: FunctionSpec, client: CandidateClient, answerer: Ans
     source = cands[chosen]
     with open(out_path, "w", encoding="utf-8") as fh:
         fh.write(source.rstrip() + "\n")
-    manifest = build_manifest(spec, probes, obs_by_cand[chosen])
+    manifest = build_manifest_for(_desc(spec), _sig(spec), probes, obs_by_cand[chosen])
     push(root, manifest, source, {"name": spec.name, "intent": intent, "witness_count": len(ledger.witnesses), "path": out_path})
 
     test_path = None
@@ -366,23 +423,46 @@ def pyrepr(v) -> str:
     return repr(v)
 
 
-def emit_tests(ledger: Ledger, spec: FunctionSpec, import_stmt: str) -> str:
+def _assert_line(call: str, expect: dict) -> str:
+    if expect.get("ok"):
+        val = uncanon(expect["value"])
+        if isinstance(val, float) and math.isnan(val):
+            return f"    assert math.isnan({call})"
+        return f"    assert {call} == {pyrepr(val)}"
+    return f"    with pytest.raises({expect['exc']}):\n        {call}"
+
+
+def _sequence_test(spec: ClassSpec, args, expect: dict) -> str | None:
+    init, calls = args
+    ctor = f"{spec.name}({', '.join(pyrepr(a) for a in init)})"
+    if not expect.get("ok"):  # constructor raised
+        return f"    with pytest.raises({expect['exc']}):\n        {ctor}"
+    steps = expect.get("steps", [])
+    if not steps:
+        return f"    obj = {ctor}"
+    body = [f"    obj = {ctor}"]
+    for (m, a), st in zip(calls, steps[:-1]):
+        body.append(f"    obj.{m}({', '.join(pyrepr(x) for x in a)})")
+    m, a = calls[len(steps) - 1]
+    body.append(_assert_line(f"obj.{m}({', '.join(pyrepr(x) for x in a)})", steps[-1]))
+    return "\n".join(body)
+
+
+def emit_tests(ledger: Ledger, spec, import_stmt: str) -> str:
     lines = ["# generated by bisim mint from the witness ledger — each test is a human-approved behavior", import_stmt, "import math", "import pytest", "", ""]
     n = 0
     for w in ledger.witnesses:
         if w.expect.get("timeout"):
             continue
-        args = ", ".join(pyrepr(a) for a in uncanon(w.args))
-        call = f"{spec.name}({args})"
+        args = uncanon(w.args)
         note = f"  # {w.note}" if w.note else ""
-        if w.expect.get("ok"):
-            val = uncanon(w.expect["value"])
-            if isinstance(val, float) and math.isnan(val):
-                body = f"    assert math.isnan({call})"
-            else:
-                body = f"    assert {call} == {pyrepr(val)}"
+        if is_class_spec(spec):
+            body = _sequence_test(spec, args, w.expect)
+            if body is None:
+                continue
         else:
-            body = f"    with pytest.raises({w.expect['exc']}):\n        {call}"
+            call = f"{spec.name}({', '.join(pyrepr(a) for a in args)})"
+            body = _assert_line(call, w.expect)
         lines += [f"def test_witness_{n}():{note}", body, "", ""]
         n += 1
     return "\n".join(lines).rstrip() + "\n"

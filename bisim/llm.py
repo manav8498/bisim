@@ -33,19 +33,37 @@ Respond with ONE JSON object and nothing else:
 candidates disagree — the inputs most worth asking a human about."""
 
 
-def build_prompt(intent: str, spec: FunctionSpec, k: int, witnesses: list[Witness]) -> str:
-    lines = [
-        f"Intent: {intent}",
-        f"Signature: def {spec.name}{spec.signature_str()}",
-        f"Produce {k} candidates.",
-    ]
+def _class_stub(spec) -> str:
+    lines = [f"class {spec.name}:"]
+    lines.append(f"    def __init__(self{''.join(f', {n}: {t}' for n, t in spec.init_params)}): ...")
+    for m in spec.public_methods():
+        f = spec.methods[m]
+        lines.append(f"    def {m}(self{''.join(f', {n}: {t}' for n, t in f.params)}) -> {f.returns}: ...")
+    return "\n".join(lines)
+
+
+def build_prompt(intent: str, spec, k: int, witnesses: list[Witness]) -> str:
+    from .fmt import fmt_args
+    from .mint import is_class_spec
+
+    lines = [f"Intent: {intent}"]
+    if is_class_spec(spec):
+        lines += [
+            "Class to implement — keep EXACTLY this name, constructor signature, and these public method signatures "
+            "(you may add private helpers and attributes):",
+            "```python", _class_stub(spec), "```",
+            f"Produce {k} candidate classes. Each candidate is the complete class source.",
+            'For "suggested_args", each entry is {"init": [<constructor args>], "calls": [["<method>", [<args>]], ...]} — '
+            "a call sequence on a fresh instance on which your candidates disagree (return values, exceptions, or resulting state).",
+        ]
+    else:
+        lines += [f"Signature: def {spec.name}{spec.signature_str()}", f"Produce {k} candidates."]
     if witnesses:
         lines.append("")
         lines.append("Hard constraints — a human has already fixed these behaviors; every candidate MUST satisfy them:")
         for w in witnesses:
-            args = tuple(uncanon(w.args))
             note = f"   # {w.note}" if w.note else ""
-            lines.append(f"  {spec.name}{args!r} -> {describe_obs(w.expect)}{note}")
+            lines.append(f"  {fmt_args(w.args)} -> {describe_obs(w.expect)}{note}")
     return "\n".join(lines)
 
 

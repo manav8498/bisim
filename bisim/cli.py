@@ -284,7 +284,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     m = sub.add_parser("mint", help="elicit intent: generate candidates, ask about the inputs where they disagree")
     m.add_argument("--intent", required=True)
-    m.add_argument("--sig", required=True, help='e.g. "def median(xs: list[float]) -> float"')
+    m.add_argument("--sig", help='e.g. "def median(xs: list[float]) -> float", or a class stub starting with "class "')
+    m.add_argument("--sig-file", help="file containing the signature or class stub")
     m.add_argument("--out", required=True, help="where to write the chosen implementation")
     m.add_argument("--k", type=int, default=6)
     m.add_argument("--max-questions", type=int, default=8)

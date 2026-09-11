@@ -225,3 +225,18 @@ def parse_signature(sig: str) -> FunctionSpec:
     s = _spec_from_def(node, text, "")
     s.source = ""
     return s
+
+
+def parse_class_stub(text: str) -> ClassSpec:
+    """Build a ClassSpec from a stub like ``class C:\n    def __init__(self, n: int): ...\n    def m(self) -> int: ...``."""
+    src = text.strip() + "\n"
+    try:
+        tree = ast.parse(src)
+    except SyntaxError as e:
+        raise Unsupported(f"cannot parse class stub: {e}")
+    for n in tree.body:
+        if isinstance(n, ast.ClassDef):
+            c = _class_spec(n, src, "")
+            c.source = ""
+            return c
+    raise Unsupported("class stub must contain a class definition")
