@@ -1,0 +1,22 @@
+[
+ {"name": "median", "intent": "median of a list of numbers", "sig": "def median(xs: list[float]) -> float",
+  "reference": "def median(xs: list[float]) -> float:\n    if not xs:\n        raise ValueError('empty')\n    s = sorted(xs)\n    n = len(s)\n    if n % 2:\n        return float(s[n // 2])\n    return (s[n // 2 - 1] + s[n // 2]) / 2\n"},
+ {"name": "clamp", "intent": "clamp a number into the inclusive range [lo, hi]", "sig": "def clamp(x: int, lo: int, hi: int) -> int",
+  "reference": "def clamp(x: int, lo: int, hi: int) -> int:\n    if lo > hi:\n        raise ValueError('lo > hi')\n    return lo if x < lo else hi if x > hi else x\n"},
+ {"name": "safe_div", "intent": "divide a by b", "sig": "def safe_div(a: float, b: float) -> float",
+  "reference": "def safe_div(a: float, b: float) -> float:\n    if b == 0:\n        raise ZeroDivisionError('division by zero')\n    return a / b\n"},
+ {"name": "dedupe", "intent": "remove duplicate elements from a list", "sig": "def dedupe(xs: list[int]) -> list[int]",
+  "reference": "def dedupe(xs: list[int]) -> list[int]:\n    seen = set()\n    out = []\n    for x in xs:\n        if x not in seen:\n            seen.add(x)\n            out.append(x)\n    return out\n"},
+ {"name": "word_count", "intent": "count the words in a string", "sig": "def word_count(s: str) -> int",
+  "reference": "def word_count(s: str) -> int:\n    return len(s.split())\n"},
+ {"name": "truncate", "intent": "truncate a string to at most n characters, adding an ellipsis if it was cut", "sig": "def truncate(s: str, n: int) -> str",
+  "reference": "def truncate(s: str, n: int) -> str:\n    if n < 0:\n        raise ValueError('n must be >= 0')\n    if len(s) <= n:\n        return s\n    if n == 0:\n        return ''\n    return s[: n - 1] + '\u2026'\n"},
+ {"name": "round_half", "intent": "round a number to the nearest integer", "sig": "def round_half(x: float) -> int",
+  "reference": "import math\n\n\ndef round_half(x: float) -> int:\n    if math.isnan(x) or math.isinf(x):\n        raise ValueError('cannot round')\n    return int(math.floor(x + 0.5)) if x >= 0 else -int(math.floor(-x + 0.5))\n"},
+ {"name": "percentile", "intent": "the p-th percentile (0..100) of a list of numbers", "sig": "def percentile(xs: list[float], p: float) -> float",
+  "reference": "def percentile(xs: list[float], p: float) -> float:\n    if not xs:\n        raise ValueError('empty')\n    if not 0 <= p <= 100:\n        raise ValueError('p out of range')\n    s = sorted(xs)\n    if len(s) == 1:\n        return float(s[0])\n    k = (len(s) - 1) * p / 100.0\n    f = int(k)\n    c = min(f + 1, len(s) - 1)\n    return s[f] + (s[c] - s[f]) * (k - f)\n"},
+ {"name": "parse_bool", "intent": "parse a string as a boolean", "sig": "def parse_bool(s: str) -> bool",
+  "reference": "def parse_bool(s: str) -> bool:\n    t = s.strip().lower()\n    if t in ('true', '1', 'yes', 'y', 'on'):\n        return True\n    if t in ('false', '0', 'no', 'n', 'off'):\n        return False\n    raise ValueError('not a boolean: ' + s)\n"},
+ {"name": "chunk", "intent": "split a list into chunks of size n", "sig": "def chunk(xs: list[int], n: int) -> list[list[int]]",
+  "reference": "def chunk(xs: list[int], n: int) -> list[list[int]]:\n    if n <= 0:\n        raise ValueError('n must be positive')\n    return [xs[i:i + n] for i in range(0, len(xs), n)]\n"}
+]
